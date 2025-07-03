@@ -1,0 +1,218 @@
+<template>
+  <el-card class="stat-detail-card">
+    <template #header>
+      <div class="stat-header">
+        <el-button type="primary" @click="goBack" style="margin-right: 10px;">
+          <el-icon><ArrowLeft /></el-icon>
+          返回
+        </el-button>
+        <h2>{{ getTitle() }}</h2>
+      </div>
+    </template>
+
+    <!-- 统计信息概览 -->
+    <div class="stat-overview">
+      <el-row :gutter="20">
+        <el-col :span="6">
+          <el-statistic title="总数量" :value="transactions.length" suffix="笔" />
+        </el-col>
+        <el-col :span="6">
+          <el-statistic title="总金额" :value="totalAmount" prefix="¥" :precision="2" />
+        </el-col>
+        <el-col :span="6">
+          <el-statistic title="平均金额" :value="averageAmount" prefix="¥" :precision="2" />
+        </el-col>
+        <el-col :span="6">
+          <el-statistic title="时间范围" :value="getTimeRange()" />
+        </el-col>
+      </el-row>
+    </div>
+
+    <el-divider />
+
+    <!-- 交易记录表格 -->
+    <el-table :data="paginatedTransactions" style="width: 100%" stripe>
+      <el-table-column prop="id" label="订单ID" width="100" />
+      <el-table-column prop="tableName" label="桌位" width="120" />
+      <el-table-column prop="orderCount" label="菜品数量" width="120">
+        <template #default="scope">
+          {{ scope.row.orderCount }} 份
+        </template>
+      </el-table-column>
+      <el-table-column prop="totalAmount" label="交易金额" width="120">
+        <template #default="scope">
+          ¥{{ parseFloat(scope.row.totalAmount).toFixed(2) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="createdAt" label="交易时间" width="180">
+        <template #default="scope">
+          {{ formatTime(scope.row.createdAt) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="120">
+        <template #default="scope">
+          <el-button type="primary" size="small" @click="viewDetail(scope.row)">
+            查看详情
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <!-- 分页 -->
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="transactions.length"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </div>
+  </el-card>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ArrowLeft } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import api from '../utils/api';
+
+const route = useRoute();
+const router = useRouter();
+const statType = route.params.type;
+
+// 数据
+const transactions = ref([]);
+const currentPage = ref(1);
+const pageSize = ref(20);
+
+// 计算属性
+const totalAmount = computed(() => {
+  return transactions.value.reduce((sum, t) => sum + parseFloat(t.totalAmount || 0), 0);
+});
+
+const averageAmount = computed(() => {
+  return transactions.value.length > 0 ? totalAmount.value / transactions.value.length : 0;
+});
+
+const paginatedTransactions = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return transactions.value.slice(start, end);
+});
+
+// 方法
+const getTitle = () => {
+  const titles = {
+    'today-orders': '今日新增订单详情',
+    'total-orders': '总订单详情',
+    'today-revenue': '今日交易金额详情',
+    'total-revenue': '总交易金额详情'
+  };
+  return titles[statType] || '统计详情';
+};
+
+const getTimeRange = () => {
+  if (statType.includes('today')) {
+    return '今日';
+  }
+  if (transactions.value.length === 0) return '无数据';
+  
+  const dates = transactions.value.map(t => new Date(t.createdAt)).sort((a, b) => a - b);
+  const start = dates[0].toLocaleDateString('zh-CN');
+  const end = dates[dates.length - 1].toLocaleDateString('zh-CN');
+  return `${start} - ${end}`;
+};
+
+const formatTime = (timeStr) => {
+  return new Date(timeStr).toLocaleString('zh-CN');
+};
+
+const goBack = () => {
+  router.push('/');
+};
+
+const viewDetail = (transaction) => {
+  ElMessage.info(`查看订单 ${transaction.id} 的详细信息`);
+  // 这里可以添加查看订单详情的逻辑
+};
+
+const handleSizeChange = (val) => {
+  pageSize.value = val;
+  currentPage.value = 1;
+};
+
+const handleCurrentChange = (val) => {
+  currentPage.value = val;
+};
+
+// 加载数据
+const loadData = async () => {
+  try {
+    let response;
+    
+    if (statType === 'today-orders' || statType === 'today-revenue') {
+      // 获取今日数据
+      response = await api.get('/api/transactions');
+      const today = new Date().toISOString().split('T')[0];
+      transactions.value = response.data.filter(t => {
+        const transDate = new Date(t.createdAt).toISOString().split('T')[0];
+        return transDate === today;
+      });
+    } else {
+      // 获取所有数据
+      response = await api.get('/api/transactions');
+      transactions.value = response.data;
+    }
+    
+    // 按时间倒序排列
+    transactions.value.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+  } catch (error) {
+    console.error('加载数据失败:', error);
+    ElMessage.error('加载数据失败');
+  }
+};
+
+onMounted(() => {
+  loadData();
+});
+</script>
+
+<style scoped>
+.stat-detail-card {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+}
+
+.stat-header h2 {
+  margin: 0;
+  color: #303133;
+}
+
+.stat-overview {
+  margin-bottom: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.el-table {
+  margin-bottom: 20px;
+}
+</style>
