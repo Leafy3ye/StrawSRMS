@@ -1,19 +1,11 @@
 <template>
   <div id="app">
-    <!-- 登录页面：显示导航栏和footer -->
-    <div v-if="isLoginPage" class="layout-container">
-      <div class="sidebar">
-        <Navbar />
-      </div>
-      <div class="main-container">
-        <div class="content">
-          <router-view></router-view>
-        </div>
-        <Footer />
-      </div>
+    <!-- 登录页面：不显示导航栏，只显示登录内容 -->
+    <div v-if="isLoginPage" class="login-layout">
+      <router-view></router-view>
     </div>
     
-    <!-- 其他页面：直接显示router-view（AdminLayout会处理布局，客户页面独立） -->
+    <!-- 其他页面：使用AdminLayout布局 -->
     <router-view v-else></router-view>
   </div>
 </template>
@@ -21,12 +13,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import Navbar from './components/Navbar.vue'
-import Footer from './components/Footer.vue'
 
 const route = useRoute()
 
-// 登录页面需要在App.vue中添加布局
+// 登录页面单独处理，不显示导航栏
 const isLoginPage = computed(() => {
   return route.path === '/login' || route.name === 'Login'
 })
@@ -41,29 +31,8 @@ const isLoginPage = computed(() => {
   overflow: hidden;
 }
 
-.layout-container {
-  display: flex;
+.login-layout {
   height: 100vh;
-}
-
-.sidebar {
-  width: 240px;
-  background-color: #304156;
-  box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
-  z-index: 1001;
-}
-
-.main-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.content {
-  flex: 1;
-  padding: 20px;
-  background-color: #f0f2f5;
-  overflow-y: auto;
+  width: 100vw;
 }
 </style>

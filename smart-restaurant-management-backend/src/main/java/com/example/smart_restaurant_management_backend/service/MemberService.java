@@ -27,8 +27,9 @@ public class MemberService {
     @Autowired
     private RechargeRecordRepository rechargeRecordRepository;
     
+    // 改为注入TenantEmailService
     @Autowired
-    private EmailService emailService;
+    private TenantEmailService tenantEmailService;
 
     // 获取所有会员
     public List<Member> getAllMembers() {
@@ -57,14 +58,15 @@ public class MemberService {
         // 发送欢迎邮件（如果邮箱不为空）
         if (savedMember.getEmail() != null && !savedMember.getEmail().trim().isEmpty()) {
             try {
-                emailService.sendWelcomeEmail(
+                // 这里可以传入租户ID，暂时传null使用默认配置
+                tenantEmailService.sendWelcomeEmail(
                     savedMember.getName(),
                     savedMember.getEmail(),
-                    savedMember.getMemberLevel()
+                    savedMember.getMemberLevel(),
+                    null // 租户ID，后续可以从上下文获取
                 );
             } catch (Exception e) {
                 System.err.println("发送欢迎邮件失败，但会员添加成功: " + e.getMessage());
-                // 邮件发送失败不影响会员添加
             }
         }
         
@@ -124,11 +126,12 @@ public class MemberService {
             // 发送充值成功邮件
             if (member.getEmail() != null && !member.getEmail().trim().isEmpty()) {
                 try {
-                    emailService.sendRechargeSuccessEmail(
+                    tenantEmailService.sendRechargeSuccessEmail(
                         member.getName(), 
                         member.getEmail(), 
                         rechargeRequest.getAmount(), 
-                        newBalance
+                        newBalance,
+                        null // 租户ID
                     );
                 } catch (Exception e) {
                     System.err.println("发送邮件失败，但充值操作已成功: " + e.getMessage());
@@ -165,12 +168,13 @@ public class MemberService {
                 // 发送消费成功邮件
                 if (savedMember.getEmail() != null && !savedMember.getEmail().trim().isEmpty()) {
                     try {
-                        emailService.sendConsumeSuccessEmail(
+                        tenantEmailService.sendConsumeSuccessEmail(
                             savedMember, 
                             deductRequest.getAmount(),
                             deductRequest.getTableName() != null ? deductRequest.getTableName() : "未知桌位",
                             deductRequest.getConsumeItems() != null ? deductRequest.getConsumeItems() : Collections.singletonList("消费详情"),
-                            deductRequest.getTotalItems() != null ? deductRequest.getTotalItems() : 1
+                            deductRequest.getTotalItems() != null ? deductRequest.getTotalItems() : 1,
+                            null // 租户ID
                         );
                     } catch (Exception e) {
                         System.err.println("发送消费邮件失败，但不影响消费流程: " + e.getMessage());

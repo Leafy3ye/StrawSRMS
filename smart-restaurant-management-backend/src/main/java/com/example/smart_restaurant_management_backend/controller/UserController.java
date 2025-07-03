@@ -1,13 +1,17 @@
 package com.example.smart_restaurant_management_backend.controller;
 
 import com.example.smart_restaurant_management_backend.dto.LoginRequestDTO;
+import com.example.smart_restaurant_management_backend.dto.RegisterRequestDTO;
 import com.example.smart_restaurant_management_backend.dto.UpdateUserDTO;
 import com.example.smart_restaurant_management_backend.dto.UserDTO;
 import com.example.smart_restaurant_management_backend.service.UserService;
+import com.example.smart_restaurant_management_backend.service.EmailService;  // 添加这行
+import com.example.smart_restaurant_management_backend.service.CaptchaService;  // 添加这行
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;  // 添加这行
 
 @RestController
 @RequestMapping("/api/users")
@@ -15,6 +19,12 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private CaptchaService captchaService;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
@@ -43,6 +53,60 @@ public class UserController {
             return ResponseEntity.ok(updatedUser);
         } else {
             return ResponseEntity.badRequest().body("更新用户信息失败");
+        }
+    }
+
+    // 用户注册
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody RegisterRequestDTO registerRequest) {
+        try {
+            UserDTO user = userService.register(registerRequest);
+            return ResponseEntity.ok(user);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 添加通过UUID获取用户的端点（之前缺失的）
+    @GetMapping("/uuid/{uuid}")
+    public ResponseEntity<?> getUserByUuid(@PathVariable String uuid) {
+        UserDTO user = userService.getUserByUuid(uuid);
+        if (user != null) {
+            return ResponseEntity.ok(user);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // 获取图形验证码
+    @GetMapping("/captcha")
+    public ResponseEntity<?> getCaptcha() {
+        try {
+            CaptchaService.CaptchaResult captcha = captchaService.generateCaptcha();
+            return ResponseEntity.ok(captcha);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("生成验证码失败");
+        }
+    }
+
+    // 发送邮件验证码
+    @PostMapping("/send-email-code")
+    public ResponseEntity<?> sendEmailCode(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body("邮箱不能为空");
+            }
+            
+            // 检查邮箱格式
+            if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+                return ResponseEntity.badRequest().body("邮箱格式不正确");
+            }
+            
+            emailService.sendEmailCode(email);
+            return ResponseEntity.ok("验证码已发送");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("发送验证码失败：" + e.getMessage());
         }
     }
 }

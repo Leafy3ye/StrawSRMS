@@ -64,11 +64,11 @@
         </el-menu-item>
       </el-sub-menu>
 
-      <!-- 登录菜单项（未登录时显示） -->
-      <el-menu-item v-if="!isLoggedIn" index="/login" @click="navigateTo('/login')">
+      <!-- 登录菜单项（未登录时显示） - 商业化改造：移除此项 -->
+      <!-- <el-menu-item v-if="!isLoggedIn" index="/login" @click="navigateTo('/login')">
         <el-icon><User /></el-icon>
         <span>登录</span>
-      </el-menu-item>
+      </el-menu-item> -->
     </el-menu>
 
     <!-- 用户信息区域（已登录时显示） -->

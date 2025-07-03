@@ -41,6 +41,7 @@ const routes = [
     ]
   },
   { path: "/login", name: "Login", component: () => import("../views/Login.vue") },
+  { path: "/register", name: "Register", component: () => import("../views/Register.vue") },
   // 客户点餐页面独立，不使用布局
   { path: "/customer/:tableId", name: "CustomerOrder", component: () => import("../views/CustomerOrder.vue") },
 ];

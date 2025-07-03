@@ -55,6 +55,14 @@
             登录
           </el-button>
         </el-form-item>
+        
+        <!-- 注册入口 -->
+        <el-form-item>
+          <div class="register-link">
+            <span class="register-text">还没有账号？</span>
+            <el-link type="primary" @click="goToRegister">点击注册！</el-link>
+          </div>
+        </el-form-item>
       </el-form>
     </el-card>
   </div>
@@ -100,6 +108,11 @@ const onLogin = () => {
       }
     }
   });
+};
+
+// 跳转到注册页面
+const goToRegister = () => {
+  router.push("/register");
 };
 </script>
 
@@ -151,5 +164,17 @@ const onLogin = () => {
 /* 输入框图标 */
 .input-icon {
   color: #909399;
+}
+
+/* 注册链接样式 */
+.register-link {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.register-text {
+  color: #909399;
+  font-size: 14px;
+  margin-right: 5px;
 }
 </style>
