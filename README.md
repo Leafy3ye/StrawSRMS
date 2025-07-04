@@ -46,15 +46,19 @@
 
 ---
 
-## ⚙️ 启动依赖环境（运行前必读）
-- 本项目使用的JAVA版本是Java 1.8 (Java 8)。
-- 本项目基于 Spring Boot 开发，数据库使用 MySQL，因此需要在本地安装 MySQL 数据库，并创建一个数据库。
-- 项目使用 JWT 进行认证，因此需要在本地安装 Redis 数据库，并启动 Redis 服务。
-- 本项目使用了 Lombok 插件，需要在 IDE 中安装 Lombok 插件，并开启注解处理器。
-- 本项目使用了 MyBatis-Plus 框架，需要在本地安装 MyBatis-Plus 插件，并开启注解处理器。
-- 本项目使用了 Spring Security 框架，需要在本地安装 Spring Security 插件，并开启注解处理器。
-- 本项目使用了 Spring Boot 插件，需要在本地安装 Spring Boot 插件，并开启注解处理器。
-- 本项目使用了 Spring Data JPA 插件，需要在本地安装 Spring Data JPA 插件，并开启注解处理器。
+## 启动依赖环境（运行前必读）
+
+项目运行需依赖以下环境与服务，请提前安装配置：
+
+- 项目使用 **Java 8 (JDK 1.8)**，需要在运行环境安装 Java，并配置环境变量。
+- 项目使用 **Spring Boot** 框架开发，使用 **MySQL** 存储业务数据，需要在运行环境安装 MySQL，并创建数据库。
+- 项目使用 **Redis** 作为验证码与 JWT 令牌缓存，需要在运行环境安装 Redis，并启动 Redis 服务。
+- 项目使用 **Lombok** 简化 Java 代码，需要在 IDE 中安装 Lombok 插件，并启用注解处理器。
+- 项目使用 **MyBatis-Plus** 作为 ORM 框架，需要在运行环境安装 MyBatis-Plus，并启用注解处理器。
+- 项目使用 **Spring Security** 实现权限认证，需要在运行环境安装 Spring Security，并启用注解处理器。
+- 项目使用 **Spring Boot 插件** 与 **Spring Data JPA**，需启用相关依赖及注解处理器支持。
+
+> 💡 推荐使用 [IntelliJ IDEA](https://www.jetbrains.com/idea/) 进行后端开发，可快速集成以上插件与处理器配置。
 
 ---
 
@@ -62,7 +66,7 @@
 
 如您有合作建议或使用问题，请联系：
 > 📧 Email: 398670671@qq.com  
-> 📂 项目负责人：TsukiLullaby
+> 📂 项目开发者：TsukiLullaby
 
 ---
 
