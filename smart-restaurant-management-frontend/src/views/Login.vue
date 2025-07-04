@@ -63,6 +63,13 @@
             <el-link type="primary" @click="goToRegister">点击注册！</el-link>
           </div>
         </el-form-item>
+        
+        <!-- 忘记密码入口 -->
+        <el-form-item>
+          <div class="forgot-password-link">
+            <el-link type="info" @click="goToForgotPassword">忘记密码？</el-link>
+          </div>
+        </el-form-item>
       </el-form>
     </el-card>
   </div>
@@ -113,6 +120,11 @@ const onLogin = () => {
 // 跳转到注册页面
 const goToRegister = () => {
   router.push("/register");
+};
+
+// 跳转到找回密码页面
+const goToForgotPassword = () => {
+  router.push("/forgot-password");
 };
 </script>
 
@@ -176,5 +188,11 @@ const goToRegister = () => {
   color: #909399;
   font-size: 14px;
   margin-right: 5px;
+}
+
+/* 忘记密码链接样式 */
+.forgot-password-link {
+  text-align: center;
+  margin-top: 5px;
 }
 </style>

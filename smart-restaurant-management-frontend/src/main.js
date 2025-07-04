@@ -21,5 +21,10 @@ app.use(router);
 const userStore = useUserStore(); 
 userStore.loadFromStorage(); // 修改方法名
 
+// 在用户store加载后检查设置状态
+if (userStore.isLoggedIn) {
+  userStore.checkSetupStatus();
+}
+
 // 挂载应用
 app.mount("#app");

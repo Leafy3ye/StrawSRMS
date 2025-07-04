@@ -56,14 +56,16 @@ api.interceptors.request.use(
   config => {
     // 从localStorage获取用户信息
     const userStr = localStorage.getItem('user');
-    if (userStr) {
+    if (userStr && userStr !== 'undefined' && userStr !== 'null') {
       try {
         const user = JSON.parse(userStr);
-        if (user.tenantId) {
+        if (user && user.tenantId) {
           config.headers['X-Tenant-ID'] = user.tenantId;
         }
       } catch (error) {
         console.error('解析用户信息失败:', error);
+        // 清除损坏的数据
+        localStorage.removeItem('user');
       }
     }
     return config;

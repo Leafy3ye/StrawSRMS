@@ -9,6 +9,8 @@ public class UserDTO {
     private String phone;
     private Boolean emailVerified;
     private String avatarUrl;
+    private String restaurantName;
+    private Boolean setupCompleted;
 
     // 不包含密码，用于返回给前端
     
@@ -74,5 +76,21 @@ public class UserDTO {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+    
+    public String getRestaurantName() {
+        return restaurantName;
+    }
+    
+    public void setRestaurantName(String restaurantName) {
+        this.restaurantName = restaurantName;
+    }
+    
+    public Boolean getSetupCompleted() {
+        return setupCompleted;
+    }
+    
+    public void setSetupCompleted(Boolean setupCompleted) {
+        this.setupCompleted = setupCompleted;
     }
 }

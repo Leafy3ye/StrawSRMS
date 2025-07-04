@@ -1,25 +1,20 @@
 package com.example.smart_restaurant_management_backend.controller;
 
-import com.example.smart_restaurant_management_backend.dto.LoginRequestDTO;
-import com.example.smart_restaurant_management_backend.dto.RegisterRequestDTO;
-import com.example.smart_restaurant_management_backend.dto.UpdateUserDTO;
-import com.example.smart_restaurant_management_backend.dto.UserDTO;
+import com.example.smart_restaurant_management_backend.dto.*;
 import com.example.smart_restaurant_management_backend.service.UserService;
-import com.example.smart_restaurant_management_backend.service.EmailService;
 import com.example.smart_restaurant_management_backend.service.CaptchaService;
-import com.example.smart_restaurant_management_backend.context.TenantContext;
+import com.example.smart_restaurant_management_backend.service.EmailService;
 import com.example.smart_restaurant_management_backend.util.JwtUtil;
-
-// 添加 Spring Web 相关的 import
+import com.example.smart_restaurant_management_backend.context.TenantContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Arrays;
+import com.example.smart_restaurant_management_backend.dto.PasswordResetDTO;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -29,49 +24,37 @@ public class UserController {
     private UserService userService;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    private CaptchaService captchaService;
 
     @Autowired
     private EmailService emailService;
 
     @Autowired
-    private CaptchaService captchaService;
+    private JwtUtil jwtUtil;
 
+    // 用户登录
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
-        try {
-            UserDTO user = userService.login(loginRequest);
-            if (user != null) {
-                // 生成 JWT Token
-                List<String> roles = Arrays.asList("USER"); // 根据实际角色设置
-                String token = jwtUtil.generateToken(
-                    user.getUsername(), 
-                    user.getTenantId(), 
-                    roles
-                );
-                
-                Map<String, Object> response = new HashMap<>();
-                response.put("token", token);
-                response.put("user", user);
-                response.put("message", "登录成功");
-                
-                return ResponseEntity.ok(response);
-            } else {
-                Map<String, String> errorResponse = new HashMap<>();
-                errorResponse.put("error", "用户名或密码错误");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(errorResponse);
-            }
-        } catch (Exception e) {
-            Map<String, String> errorResponse = new HashMap<>();
-            errorResponse.put("error", "登录失败: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(errorResponse);
+        UserDTO user = userService.login(loginRequest);
+        if (user != null) {
+            // 生成JWT token - 需要提供username, tenantId, 和roles
+            List<String> roles = Arrays.asList("USER"); // 或者根据用户类型设置角色
+            String token = jwtUtil.generateToken(user.getUsername(), user.getTenantId(), roles);
+            
+            // 构建包含token和user的响应
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("user", user);
+            
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body("用户名或密码错误");
         }
     }
 
+    // 获取用户信息
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+    public ResponseEntity<?> getUser(@PathVariable Long id) {
         UserDTO user = userService.getUserById(id);
         if (user != null) {
             return ResponseEntity.ok(user);
@@ -80,6 +63,7 @@ public class UserController {
         }
     }
 
+    // 更新用户信息
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UpdateUserDTO updateUserDTO) {
         UserDTO updatedUser = userService.updateUser(id, updateUserDTO);
@@ -141,6 +125,146 @@ public class UserController {
             return ResponseEntity.ok("验证码已发送");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("发送验证码失败：" + e.getMessage());
+        }
+    }
+
+    // 店铺初始化设置
+    @PostMapping("/shop-setup")
+    public ResponseEntity<?> setupShop(@RequestBody ShopSetupDTO shopSetupDTO) {
+        try {
+            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            if (currentTenantId == null) {
+                return ResponseEntity.badRequest().body("未找到当前租户信息");
+            }
+            
+            UserDTO updatedUser = userService.setupShop(currentTenantId, shopSetupDTO);
+            if (updatedUser != null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("user", updatedUser);
+                response.put("message", "店铺设置完成");
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body("店铺设置失败");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("店铺设置失败：" + e.getMessage());
+        }
+    }
+    
+    // 更新店铺信息
+    @PutMapping("/shop-info")
+    public ResponseEntity<?> updateShopInfo(@RequestBody Map<String, String> request) {
+        try {
+            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            if (currentTenantId == null) {
+                return ResponseEntity.badRequest().body("未找到当前租户信息");
+            }
+            
+            String shopName = request.get("shopName");
+            UserDTO updatedUser = userService.updateShopName(currentTenantId, shopName);
+            if (updatedUser != null) {
+                return ResponseEntity.ok(updatedUser);
+            } else {
+                return ResponseEntity.badRequest().body("更新店铺信息失败");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("更新店铺信息失败：" + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/delete-account")
+    public ResponseEntity<?> deleteAccount(@RequestBody DeleteAccountDTO deleteAccountDTO, HttpServletRequest request) {
+        try {
+            String token = request.getHeader("Authorization");
+            if (token != null && token.startsWith("Bearer ")) {
+                token = token.substring(7);
+                String tenantId = jwtUtil.extractTenantId(token);
+                
+                boolean success = userService.deleteAccount(tenantId, deleteAccountDTO);
+                if (success) {
+                    Map<String, String> response = new HashMap<>();
+                    response.put("message", "账户删除成功");
+                    return ResponseEntity.ok().body(response);
+                } else {
+                    return ResponseEntity.badRequest().body("删除失败，请检查输入信息");
+                }
+            }
+            return ResponseEntity.badRequest().body("无效的token");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 验证图形验证码
+    @PostMapping("/verify-captcha")
+    public ResponseEntity<?> verifyCaptcha(@RequestBody Map<String, String> request) {
+        try {
+            String captchaKey = request.get("captchaKey");
+            String captcha = request.get("captcha");
+            
+            if (captchaKey == null || captcha == null) {
+                return ResponseEntity.badRequest().body("验证码信息不完整");
+            }
+            
+            boolean isValid = captchaService.verifyCaptcha(captchaKey, captcha);
+            if (isValid) {
+                return ResponseEntity.ok("验证码正确");
+            } else {
+                return ResponseEntity.badRequest().body("验证码错误");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("验证码验证失败：" + e.getMessage());
+        }
+    }
+
+    // 发送重置密码验证码
+    @PostMapping("/send-reset-password-code")
+    public ResponseEntity<?> sendResetPasswordCode(@RequestBody Map<String, String> request) {
+        try {
+            String account = request.get("account");
+            String captchaKey = request.get("captchaKey");
+            String captcha = request.get("captcha");
+            
+            if (account == null || account.isEmpty()) {
+                return ResponseEntity.badRequest().body("账户不能为空");
+            }
+            
+            // 验证图形验证码
+            if (!captchaService.verifyCaptcha(captchaKey, captcha)) {
+                return ResponseEntity.badRequest().body("图形验证码错误");
+            }
+            
+            // 发送重置密码验证码
+            userService.sendResetPasswordCode(account);
+            return ResponseEntity.ok("验证码已发送到您的邮箱");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("发送验证码失败：" + e.getMessage());
+        }
+    }
+
+    // 重置密码
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+            String account = request.get("account");
+            String emailCode = request.get("emailCode");
+            String newPassword = request.get("newPassword");
+            
+            if (account == null || emailCode == null || newPassword == null) {
+                return ResponseEntity.badRequest().body("信息不完整");
+            }
+            
+            // 创建PasswordResetDTO对象
+            PasswordResetDTO passwordResetDTO = new PasswordResetDTO();
+            passwordResetDTO.setAccount(account);
+            passwordResetDTO.setEmailCode(emailCode);
+            passwordResetDTO.setNewPassword(newPassword);
+            
+            // UserService的resetPassword方法返回void，如果执行成功不会抛出异常
+            userService.resetPassword(passwordResetDTO);
+            return ResponseEntity.ok("密码重置成功");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("密码重置失败：" + e.getMessage());
         }
     }
 }

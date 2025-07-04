@@ -1,18 +1,31 @@
 package com.example.smart_restaurant_management_backend.service;
 import com.example.smart_restaurant_management_backend.dto.LoginRequestDTO;
-import com.example.smart_restaurant_management_backend.dto.RegisterRequestDTO;  // 添加这行import
+import com.example.smart_restaurant_management_backend.dto.RegisterRequestDTO;
 import com.example.smart_restaurant_management_backend.dto.UpdateUserDTO;
 import com.example.smart_restaurant_management_backend.dto.UserDTO;
+import com.example.smart_restaurant_management_backend.dto.ShopSetupDTO;
+import com.example.smart_restaurant_management_backend.dto.DeleteAccountDTO;
+import com.example.smart_restaurant_management_backend.dto.PasswordResetDTO;
 import com.example.smart_restaurant_management_backend.model.User;
 import com.example.smart_restaurant_management_backend.repository.UserRepository;
+import com.example.smart_restaurant_management_backend.repository.TableRepository;
+import com.example.smart_restaurant_management_backend.repository.OrderRepository;
+import com.example.smart_restaurant_management_backend.repository.TransactionRepository;
+import com.example.smart_restaurant_management_backend.repository.DishRepository;
+import com.example.smart_restaurant_management_backend.repository.MemberRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import javax.annotation.PostConstruct;
 import java.util.Optional;
 import java.util.UUID;
 import com.example.smart_restaurant_management_backend.dto.RestaurantSetupRequest;
 import com.example.smart_restaurant_management_backend.model.UserType;
+import com.example.smart_restaurant_management_backend.dto.OrderDetailDTO;
+import com.example.smart_restaurant_management_backend.model.Order;
 
 @Service
 public class UserService {
@@ -28,6 +41,72 @@ public class UserService {
 
     @Autowired
     private CaptchaService captchaService;
+
+    @Autowired
+    private TableService tableService;
+
+    @Autowired
+    private TableRepository tableRepository;
+    
+    @Autowired
+    private OrderRepository orderRepository;
+    
+    @Autowired
+    private TransactionRepository transactionRepository;
+    
+    @Autowired
+    private DishRepository dishRepository;
+    
+    @Autowired
+    private MemberRepository memberRepository;
+
+    // 删除账户和所有相关数据
+    @Transactional
+    public boolean deleteAccount(String tenantId, DeleteAccountDTO deleteAccountDTO) {
+        // 验证确认文本
+        if (!"DELETE".equals(deleteAccountDTO.getConfirmText())) {
+            throw new RuntimeException("确认文本不正确");
+        }
+        
+        // 获取用户信息
+        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        if (!userOpt.isPresent()) {
+            throw new RuntimeException("用户不存在");
+        }
+        
+        User user = userOpt.get();
+        
+        // 验证当前密码
+        if (!passwordEncoder.matches(deleteAccountDTO.getCurrentPassword(), user.getPassword())) {
+            throw new RuntimeException("当前密码不正确");
+        }
+        
+        try {
+            // 按照外键依赖顺序删除数据
+            
+            // 1. 删除订单（依赖桌位和菜品）
+            orderRepository.deleteByTenantId(tenantId);
+            
+            // 2. 删除交易记录
+            transactionRepository.deleteByTenantId(tenantId);
+            
+            // 3. 删除桌位
+            tableRepository.deleteByTenantId(tenantId);
+            
+            // 4. 删除菜品
+            dishRepository.deleteByTenantId(tenantId);
+            
+            // 5. 删除会员
+            memberRepository.deleteByTenantId(tenantId);
+            
+            // 6. 最后删除用户
+            userRepository.delete(user);
+            
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException("删除账户失败: " + e.getMessage());
+        }
+    }
 
     // 初始化管理员账户
     @PostConstruct
@@ -168,13 +247,15 @@ public class UserService {
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
-        dto.setTenantId(user.getTenantId());  // 添加这行！
+        dto.setTenantId(user.getTenantId());
         dto.setUuid(user.getUuid());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setEmailVerified(user.getEmailVerified());
         dto.setAvatarUrl(user.getAvatarUrl());
+        dto.setRestaurantName(user.getRestaurantName());
+        dto.setSetupCompleted(user.getSetupCompleted());
         return dto;
     }
 
@@ -182,5 +263,156 @@ public class UserService {
     private boolean isValidUsername(String username) {
         // 支持中文、英文、数字和下划线，长度3-20个字符
         return username != null && username.matches("^[\\u4e00-\\u9fa5a-zA-Z0-9_]{3,20}$");
+    }
+
+    // 店铺初始化设置
+    public UserDTO setupShop(String tenantId, ShopSetupDTO shopSetupDTO) {
+        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            
+            // 更新店铺信息
+            user.setRestaurantName(shopSetupDTO.getShopName());
+            user.setSetupCompleted(true);
+            
+            // 保存用户信息
+            User savedUser = userRepository.save(user);
+            
+            // 创建桌位
+            if (shopSetupDTO.getTableCount() != null && shopSetupDTO.getTableCount() > 0) {
+                createInitialTables(tenantId, shopSetupDTO.getTableCount());
+            }
+            
+            return convertToDTO(savedUser);
+        }
+        return null;
+    }
+    
+    // 更新店铺名称
+    public UserDTO updateShopName(String tenantId, String shopName) {
+        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setRestaurantName(shopName);
+            User savedUser = userRepository.save(user);
+            return convertToDTO(savedUser);
+        }
+        return null;
+    }
+    
+    // 创建初始桌位
+    private void createInitialTables(String tenantId, Integer tableCount) {
+        for (int i = 1; i <= tableCount; i++) {
+            try {
+                tableService.saveWithSql("桌位 " + i, "未开桌");
+            } catch (Exception e) {
+                // 记录错误但不中断流程
+                System.err.println("创建桌位失败: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 发送重置密码验证码
+     * @param account 账户（用户名或邮箱）
+     * @throws Exception 发送失败时抛出异常
+     */
+    public void sendResetPasswordCode(String account) throws Exception {
+        if (account == null || account.trim().isEmpty()) {
+            throw new RuntimeException("账户不能为空");
+        }
+        
+        // 查找用户（支持用户名或邮箱）
+        User user = null;
+        if (isValidEmail(account)) {
+            // 如果是邮箱格式，按邮箱查找
+            Optional<User> userOpt = userRepository.findByEmail(account);
+            if (userOpt.isPresent()) {
+                user = userOpt.get();
+            }
+        } else {
+            // 否则按用户名查找
+            Optional<User> userOpt = userRepository.findByUsername(account);
+            if (userOpt.isPresent()) {
+                user = userOpt.get();
+            }
+        }
+        
+        if (user == null) {
+            throw new RuntimeException("账户不存在");
+        }
+        
+        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+            throw new RuntimeException("该账户未绑定邮箱，无法发送重置密码验证码");
+        }
+        
+        // 发送验证码到用户绑定的邮箱
+        try {
+            emailService.sendResetPasswordCode(user.getEmail());
+        } catch (Exception e) {
+            throw new RuntimeException("发送重置密码验证码失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 重置密码
+     * @param passwordResetDTO 密码重置DTO
+     * @throws Exception 重置失败时抛出异常
+     */
+    @Transactional
+    public void resetPassword(PasswordResetDTO passwordResetDTO) throws Exception {
+        if (passwordResetDTO.getAccount() == null || passwordResetDTO.getAccount().trim().isEmpty()) {
+            throw new RuntimeException("账户不能为空");
+        }
+        
+        if (passwordResetDTO.getEmailCode() == null || passwordResetDTO.getEmailCode().trim().isEmpty()) {
+            throw new RuntimeException("邮箱验证码不能为空");
+        }
+        
+        if (passwordResetDTO.getNewPassword() == null || passwordResetDTO.getNewPassword().trim().isEmpty()) {
+            throw new RuntimeException("新密码不能为空");
+        }
+        
+        // 查找用户（支持用户名或邮箱）
+        User user = null;
+        String emailForVerification = null;
+        
+        if (isValidEmail(passwordResetDTO.getAccount())) {
+            // 如果是邮箱格式，按邮箱查找
+            Optional<User> userOpt = userRepository.findByEmail(passwordResetDTO.getAccount());
+            if (userOpt.isPresent()) {
+                user = userOpt.get();
+                emailForVerification = passwordResetDTO.getAccount();
+            }
+        } else {
+            // 否则按用户名查找
+            Optional<User> userOpt = userRepository.findByUsername(passwordResetDTO.getAccount());
+            if (userOpt.isPresent()) {
+                user = userOpt.get();
+                emailForVerification = user.getEmail();
+            }
+        }
+        
+        if (user == null) {
+            throw new RuntimeException("账户不存在");
+        }
+        
+        if (emailForVerification == null || emailForVerification.trim().isEmpty()) {
+            throw new RuntimeException("该账户未绑定邮箱，无法重置密码");
+        }
+        
+        // 验证邮箱验证码
+        // 验证邮箱验证码
+        if (!emailService.verifyResetPasswordCode(emailForVerification, passwordResetDTO.getEmailCode())) {
+            throw new RuntimeException("邮箱验证码错误或已过期");
+        }
+        
+        // 更新密码
+        try {
+            user.setPassword(passwordEncoder.encode(passwordResetDTO.getNewPassword()));
+            userRepository.save(user);
+        } catch (Exception e) {
+            throw new RuntimeException("重置密码失败：" + e.getMessage());
+        }
     }
 }

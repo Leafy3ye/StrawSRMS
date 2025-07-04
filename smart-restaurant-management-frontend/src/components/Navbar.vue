@@ -3,7 +3,7 @@
     <!-- Logo区域 -->
     <div class="logo-container">
       <img :src="logoUrl" alt="logo" class="logo-img" />
-      <span class="logo-title">智慧餐饮解决方案</span>
+      <span class="logo-title">{{ userStore.shopName || '智慧餐饮解决方案' }}</span>
     </div>
     
     <!-- 导航菜单 -->
@@ -113,7 +113,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { useUserStore } from "../store/user";
+import { useUserStore } from '../store/user';
 import { 
   House, Document, Edit, User, SwitchButton, Setting, ArrowDown,
   Tools, Message, Shop, Brush

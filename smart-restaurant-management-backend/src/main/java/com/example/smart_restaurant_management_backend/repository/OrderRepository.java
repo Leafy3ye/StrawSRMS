@@ -5,6 +5,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Integer> {
@@ -22,4 +26,9 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     List<Order> findByTableId(Integer tableId);
     List<Order> findByDishId(Integer dishId);
     List<Order> findByDishIdAndCompletedFalse(Integer dishId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Order o WHERE o.tenantId = :tenantId")
+    void deleteByTenantId(@Param("tenantId") String tenantId);
 }

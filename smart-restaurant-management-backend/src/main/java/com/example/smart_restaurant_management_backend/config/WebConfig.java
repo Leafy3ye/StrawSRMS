@@ -16,6 +16,15 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtTenantInterceptor)
                 .addPathPatterns("/api/**")  // 拦截所有API请求
-                .excludePathPatterns("/api/users/login", "/api/users/register");  // 排除登录和注册接口
+                // 在excludePathPatterns中添加以下路径
+                .excludePathPatterns(
+                    "/api/users/login",
+                    "/api/users/register", 
+                    "/api/users/captcha",
+                    "/api/users/send-email-code",
+                    "/api/users/verify-captcha",           // 新增
+                    "/api/users/send-reset-password-code", // 新增
+                    "/api/users/reset-password"            // 新增
+                );  // 排除登录、注册、验证码、找回密码相关接口
     }
 }

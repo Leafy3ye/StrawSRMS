@@ -9,6 +9,10 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface TableRepository extends JpaRepository<TableEntity, Integer> {
@@ -34,4 +38,9 @@ public interface TableRepository extends JpaRepository<TableEntity, Integer> {
     @Transactional
     @Query(value = "DELETE FROM tables WHERE id = :id AND tenant_id = :tenantId", nativeQuery = true)
     void deleteTableWithSql(@Param("id") Integer id, @Param("tenantId") String tenantId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM TableEntity t WHERE t.tenantId = :tenantId")
+    void deleteByTenantId(@Param("tenantId") String tenantId);
 }

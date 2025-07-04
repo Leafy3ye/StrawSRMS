@@ -18,7 +18,9 @@ const route = useRoute()
 
 // 登录页面单独处理，不显示导航栏
 const isLoginPage = computed(() => {
-  return route.path === '/login' || route.name === 'Login'
+  return route.path === '/login' || route.name === 'Login' || 
+         route.path === '/register' || route.name === 'Register' ||
+         route.path === '/forgot-password' || route.name === 'ForgotPassword'
 })
 </script>
 

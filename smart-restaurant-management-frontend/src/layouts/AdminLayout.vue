@@ -9,12 +9,24 @@
       </div>
       <Footer />
     </div>
+    <!-- 店铺设置弹窗 -->
+    <ShopSetupDialog />
   </div>
 </template>
 
 <script setup>
-import Navbar from "../components/Navbar.vue"
-import Footer from "../components/Footer.vue"
+import Navbar from '../components/Navbar.vue';
+import Footer from '../components/Footer.vue';
+import ShopSetupDialog from '../components/ShopSetupDialog.vue';
+import { useUserStore } from '../store/user';
+import { onMounted } from 'vue';
+
+const userStore = useUserStore();
+
+// 页面加载时检查是否需要显示设置弹窗
+onMounted(() => {
+  userStore.checkSetupStatus();
+});
 </script>
 
 <style scoped>

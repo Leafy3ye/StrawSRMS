@@ -1,56 +1,26 @@
 <template>
-  <div class="register-page">
-    <el-card class="register-card">
+  <div class="forgot-password-page">
+    <el-card class="forgot-password-card">
       <!-- Logo 图片 -->
       <div class="logo-container">
         <img :src="logoUrl" alt="Logo" class="logo-image" />
       </div>
 
       <!-- 标题 -->
-      <h2 class="register-title">用户注册</h2>
+      <h2 class="forgot-password-title">找回密码</h2>
 
-      <!-- 注册表单 -->
-      <el-form :model="form" label-width="0" ref="registerForm" class="register-form" :rules="rules">
-        <!-- 用户名输入框 -->
-        <el-form-item prop="username">
+      <!-- 找回密码表单 -->
+      <el-form :model="form" label-width="0" ref="forgotPasswordForm" class="forgot-password-form" :rules="rules">
+        <!-- 账户名或邮箱输入框 -->
+        <el-form-item prop="account">
           <el-input
-            v-model="form.username"
-            placeholder="请输入用户名（支持中文、英文、数字，3-20个字符）"
+            v-model="form.account"
+            placeholder="请输入用户名或邮箱地址"
             clearable
           >
             <template #prefix>
               <el-icon class="input-icon">
                 <User />
-              </el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-
-        <!-- 邮箱输入框 -->
-        <el-form-item prop="email">
-          <el-input
-            v-model="form.email"
-            placeholder="请输入邮箱地址"
-            clearable
-          >
-            <template #prefix>
-              <el-icon class="input-icon">
-                <Message />
-              </el-icon>
-            </template>
-          </el-input>
-        </el-form-item>
-
-        <!-- 手机号输入框 -->
-        <el-form-item prop="phone">
-          <el-input
-            v-model="form.phone"
-            placeholder="请输入手机号"
-            clearable
-          >
-            <template #prefix>
-              <el-icon class="input-icon">
-                <Phone />
               </el-icon>
             </template>
           </el-input>
@@ -103,12 +73,12 @@
           </div>
         </el-form-item>
 
-        <!-- 密码输入框 -->
-        <el-form-item prop="password">
+        <!-- 新密码输入框 -->
+        <el-form-item prop="newPassword">
           <el-input
-            v-model="form.password"
+            v-model="form.newPassword"
             type="password"
-            placeholder="请输入密码（6-20个字符）"
+            placeholder="请输入新密码（6-20个字符）"
             clearable
             show-password
           >
@@ -120,12 +90,12 @@
           </el-input>
         </el-form-item>
 
-        <!-- 确认密码输入框 -->
+        <!-- 确认新密码输入框 -->
         <el-form-item prop="confirmPassword">
           <el-input
             v-model="form.confirmPassword"
             type="password"
-            placeholder="请再次输入密码"
+            placeholder="请再次输入新密码"
             clearable
             show-password
           >
@@ -137,23 +107,22 @@
           </el-input>
         </el-form-item>
 
-        <!-- 注册按钮 -->
+        <!-- 重置密码按钮 -->
         <el-form-item>
           <el-button
             type="primary"
-            @click="onRegister"
+            @click="onResetPassword"
             style="width: 100%;"
             :loading="loading"
-            :icon="UserFilled"
+            :icon="Key"
           >
-            注册
+            重置密码
           </el-button>
         </el-form-item>
         
         <!-- 返回登录 -->
         <el-form-item>
           <div class="login-link">
-            <span class="login-text">已有账号？</span>
             <el-link type="primary" @click="goToLogin">返回登录</el-link>
           </div>
         </el-form-item>
@@ -164,14 +133,12 @@
 
 <script setup>
 import { reactive, ref, onMounted, computed } from "vue";
-import { useUserStore } from "../store/user";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
-import { User, Lock, UserFilled, Message, Phone, Picture, Key } from "@element-plus/icons-vue";
+import { User, Lock, Picture, Key } from "@element-plus/icons-vue";
 import api from "../utils/api";
 import logoUrl from '../assets/logo.jpg';
 
-const userStore = useUserStore();
 const router = useRouter();
 const loading = ref(false);
 const emailCodeSending = ref(false);
@@ -180,18 +147,21 @@ const captchaImage = ref('');
 const captchaKey = ref('');
 
 const form = reactive({
-  username: "",
-  email: "",
-  phone: "",
+  account: "",
   captcha: "",
   emailCode: "",
-  password: "",
+  newPassword: "",
   confirmPassword: "",
+});
+
+// 检查图形验证码是否有效（只检查长度）
+const isCaptchaValid = computed(() => {
+  return form.captcha.length >= 4;
 });
 
 // 自定义验证规则
 const validateConfirmPassword = (rule, value, callback) => {
-  if (value !== form.password) {
+  if (value !== form.newPassword) {
     callback(new Error('两次输入的密码不一致'));
   } else {
     callback();
@@ -199,18 +169,8 @@ const validateConfirmPassword = (rule, value, callback) => {
 };
 
 const rules = {
-  username: [
-    { required: true, message: "请输入用户名", trigger: "blur" },
-    { min: 3, max: 20, message: "用户名长度在 3 到 20 个字符", trigger: "blur" },
-    { pattern: /^[\u4e00-\u9fa5a-zA-Z0-9_]+$/, message: "用户名只能包含中文、字母、数字和下划线", trigger: "blur" }
-  ],
-  email: [
-    { required: true, message: "请输入邮箱地址", trigger: "blur" },
-    { type: 'email', message: "请输入正确的邮箱地址", trigger: "blur" }
-  ],
-  phone: [
-    { required: true, message: "请输入手机号", trigger: "blur" },
-    { pattern: /^1[3-9]\d{9}$/, message: "请输入正确的手机号", trigger: "blur" }
+  account: [
+    { required: true, message: "请输入用户名或邮箱地址", trigger: "blur" }
   ],
   captcha: [
     { required: true, message: "请输入图形验证码", trigger: "blur" }
@@ -218,22 +178,17 @@ const rules = {
   emailCode: [
     { required: true, message: "请输入邮件验证码", trigger: "blur" }
   ],
-  password: [
-    { required: true, message: "请输入密码", trigger: "blur" },
+  newPassword: [
+    { required: true, message: "请输入新密码", trigger: "blur" },
     { min: 6, max: 20, message: "密码长度在 6 到 20 个字符", trigger: "blur" }
   ],
   confirmPassword: [
-    { required: true, message: "请再次输入密码", trigger: "blur" },
+    { required: true, message: "请再次输入新密码", trigger: "blur" },
     { validator: validateConfirmPassword, trigger: "blur" }
   ]
 };
 
-const registerForm = ref(null);
-
-// 检查图形验证码是否有效
-const isCaptchaValid = computed(() => {
-  return form.captcha.length >= 4;
-});
+const forgotPasswordForm = ref(null);
 
 // 获取图形验证码
 const refreshCaptcha = async () => {
@@ -249,20 +204,20 @@ const refreshCaptcha = async () => {
 
 // 发送邮件验证码
 const sendEmailCode = async () => {
-  if (!form.email) {
-    ElMessage.error('请先输入邮箱地址');
+  if (!form.account) {
+    ElMessage.error('请先输入用户名或邮箱地址');
     return;
   }
   
   if (!form.captcha || form.captcha.length < 4) {
-    ElMessage.error('请先输入图形验证码');
+    ElMessage.error('请输入图形验证码');
     return;
   }
   
   emailCodeSending.value = true;
   try {
-    await api.post('/api/users/send-email-code', { 
-      email: form.email,
+    await api.post('/api/users/send-reset-password-code', { 
+      account: form.account,
       captchaKey: captchaKey.value,
       captcha: form.captcha
     });
@@ -278,32 +233,29 @@ const sendEmailCode = async () => {
     }, 1000);
   } catch (error) {
     ElMessage.error(error.response?.data || '发送验证码失败');
-    refreshCaptcha();
+    refreshCaptcha(); // 验证失败时刷新验证码
   } finally {
     emailCodeSending.value = false;
   }
 };
 
-// 注册操作
-const onRegister = () => {
-  registerForm.value.validate(async (valid) => {
+// 重置密码操作
+const onResetPassword = () => {
+  forgotPasswordForm.value.validate(async (valid) => {
     if (valid) {
       loading.value = true;
       try {
-        await userStore.register({
-          username: form.username,
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
-          captcha: form.captcha,
+        await api.post('/api/users/reset-password', {
+          account: form.account,
+          emailCode: form.emailCode,
+          newPassword: form.newPassword,
           captchaKey: captchaKey.value,
-          emailCode: form.emailCode
+          captcha: form.captcha
         });
-        ElMessage.success("注册成功！请登录");
+        ElMessage.success("密码重置成功！请使用新密码登录");
         router.push("/login");
       } catch (error) {
-        ElMessage.error(error.message || "注册失败！");
-        // 注册失败后刷新验证码
+        ElMessage.error(error.response?.data || "密码重置失败！");
         refreshCaptcha();
       } finally {
         loading.value = false;
@@ -325,7 +277,7 @@ onMounted(() => {
 
 <style scoped>
 /* 页面整体布局 */
-.register-page {
+.forgot-password-page {
   height: 100vh;
   display: flex;
   justify-content: center;
@@ -333,8 +285,8 @@ onMounted(() => {
   background-color: #f5f7fa;
 }
 
-/* 注册卡片样式 */
-.register-card {
+/* 找回密码卡片样式 */
+.forgot-password-card {
   width: 400px;
   padding: 20px;
   border-radius: 8px;
@@ -356,15 +308,15 @@ onMounted(() => {
 }
 
 /* 标题样式 */
-.register-title {
+.forgot-password-title {
   text-align: center;
   font-size: 24px;
   color: #303133;
   margin-bottom: 30px;
 }
 
-/* 注册表单 */
-.register-form {
+/* 找回密码表单 */
+.forgot-password-form {
   margin-top: 20px;
 }
 
@@ -377,12 +329,6 @@ onMounted(() => {
 .login-link {
   text-align: center;
   margin-top: 10px;
-}
-
-.login-text {
-  color: #909399;
-  font-size: 14px;
-  margin-right: 5px;
 }
 
 .captcha-container {

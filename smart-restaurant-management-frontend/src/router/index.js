@@ -42,6 +42,7 @@ const routes = [
   },
   { path: "/login", name: "Login", component: () => import("../views/Login.vue") },
   { path: "/register", name: "Register", component: () => import("../views/Register.vue") },
+  { path: "/forgot-password", name: "ForgotPassword", component: () => import("../views/ForgotPassword.vue") },
   // 客户点餐页面独立，不使用布局
   { path: "/customer/:tableId", name: "CustomerOrder", component: () => import("../views/CustomerOrder.vue") },
 ];
@@ -53,9 +54,31 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore();
-  const authRequired = ["/list", "/add", "/cart", "/stats", "/members", "/member-policy", "/profile", "/settings"];
-
-  if (authRequired.some(path => to.path.startsWith(path)) && !userStore.user) {
+  
+  // 定义不需要认证的路径（白名单）
+  const publicRoutes = ["/login", "/register", "/forgot-password"];
+  // 定义客户端路径（不需要管理员认证）
+  const customerRoutes = ["/customer"];
+  
+  // 检查是否为公开路由
+  const isPublicRoute = publicRoutes.includes(to.path);
+  // 检查是否为客户端路由
+  const isCustomerRoute = customerRoutes.some(path => to.path.startsWith(path));
+  
+  // 如果用户已登录且试图访问登录或注册页面，重定向到主页
+  if (userStore.user && userStore.token && (to.path === "/login" || to.path === "/register")) {
+    next("/");
+    return;
+  }
+  
+  // 如果是公开路由或客户端路由，直接通过
+  if (isPublicRoute || isCustomerRoute) {
+    next();
+    return;
+  }
+  
+  // 其他所有路由都需要认证（包括根路径 "/"）
+  if (!userStore.user || !userStore.token) {
     next("/login");
   } else {
     next();

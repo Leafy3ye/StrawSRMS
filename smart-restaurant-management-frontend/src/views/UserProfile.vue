@@ -67,20 +67,89 @@
           <el-button @click="resetForm">重置</el-button>
         </el-form-item>
       </el-form>
+
+      <!-- 危险操作区域 -->
+      <el-divider />
+      <div class="danger-zone">
+        <h3 class="danger-title">危险操作</h3>
+        <p class="danger-description">
+          注销账户将永久删除您的所有数据，包括店铺信息、菜品、订单、会员等，此操作无法恢复！
+        </p>
+        <el-button type="danger" @click="showDeleteDialog = true">
+          注销账户
+        </el-button>
+      </div>
     </el-card>
+
+    <!-- 删除账户确认对话框 -->
+    <el-dialog
+      v-model="showDeleteDialog"
+      title="注销账户确认"
+      width="500px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+    >
+      <div class="delete-warning">
+        <el-alert
+          title="您正在进行注销账户操作！"
+          description="注意，此操作将删除关于您和您店铺的一切数据，并且无法恢复！请谨慎操作！"
+          type="error"
+          :closable="false"
+          show-icon
+        />
+      </div>
+      
+      <el-form :model="deleteForm" :rules="deleteRules" ref="deleteFormRef" class="delete-form">
+        <el-form-item label="当前密码" prop="currentPassword">
+          <el-input
+            v-model="deleteForm.currentPassword"
+            type="password"
+            show-password
+            placeholder="请输入当前密码以确认身份"
+          />
+        </el-form-item>
+        
+        <el-form-item label="确认删除" prop="confirmText">
+          <el-input
+            v-model="deleteForm.confirmText"
+            placeholder="请输入 DELETE 以确认删除"
+          />
+          <div class="confirm-hint">请在上方输入框中输入 <strong>DELETE</strong> 以确认删除操作</div>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelDelete">取消</el-button>
+          <el-button 
+            type="danger" 
+            @click="confirmDelete" 
+            :loading="deleteLoading"
+            :disabled="deleteForm.confirmText !== 'DELETE'"
+          >
+            确认删除账户
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import { useUserStore } from "../store/user";
-import { ElMessage } from "element-plus";
+import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
 import { User } from "@element-plus/icons-vue";
 
 const userStore = useUserStore();
+const router = useRouter();
 const formRef = ref(null);
+const deleteFormRef = ref(null);
 const loading = ref(false);
+const deleteLoading = ref(false);
 const avatarFile = ref(null);
+const showDeleteDialog = ref(false);
 
 // 表单数据
 const form = reactive({
@@ -88,6 +157,12 @@ const form = reactive({
   currentPassword: "",
   newPassword: "",
   confirmPassword: "",
+});
+
+// 删除账户表单
+const deleteForm = reactive({
+  currentPassword: "",
+  confirmText: ""
 });
 
 // 头像URL
@@ -112,6 +187,26 @@ const rules = {
       validator: (rule, value, callback) => {
         if (form.newPassword && value !== form.newPassword) {
           callback(new Error("两次输入密码不一致"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur",
+    },
+  ],
+};
+
+// 删除表单验证规则
+const deleteRules = {
+  currentPassword: [
+    { required: true, message: "请输入当前密码", trigger: "blur" },
+  ],
+  confirmText: [
+    { required: true, message: "请输入 DELETE 以确认", trigger: "blur" },
+    {
+      validator: (rule, value, callback) => {
+        if (value !== "DELETE") {
+          callback(new Error("请输入 DELETE 以确认删除操作"));
         } else {
           callback();
         }
@@ -178,6 +273,52 @@ const resetForm = () => {
   form.username = userStore.user?.username || "";
 };
 
+// 取消删除
+const cancelDelete = () => {
+  showDeleteDialog.value = false;
+  deleteForm.currentPassword = "";
+  deleteForm.confirmText = "";
+};
+
+// 确认删除账户
+const confirmDelete = () => {
+  deleteFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        await ElMessageBox.confirm(
+          '您确定要删除账户吗？此操作将永久删除所有数据且无法恢复！',
+          '最终确认',
+          {
+            confirmButtonText: '确定删除',
+            cancelButtonText: '取消',
+            type: 'error',
+            confirmButtonClass: 'el-button--danger'
+          }
+        );
+        
+        deleteLoading.value = true;
+        
+        const result = await userStore.deleteAccount({
+          currentPassword: deleteForm.currentPassword,
+          confirmText: deleteForm.confirmText
+        });
+        
+        ElMessage.success(result.message || '账户删除成功');
+        
+        // 跳转到登录页
+        router.push('/login');
+        
+      } catch (error) {
+        if (error !== 'cancel') {
+          ElMessage.error(error.response?.data || error.message || '删除失败');
+        }
+      } finally {
+        deleteLoading.value = false;
+      }
+    }
+  });
+};
+
 // 组件挂载时获取最新的用户信息
 onMounted(async () => {
   if (userStore.user) {
@@ -214,5 +355,44 @@ onMounted(async () => {
 .profile-form {
   max-width: 500px;
   margin: 0 auto;
+}
+
+.danger-zone {
+  margin-top: 30px;
+  padding: 20px;
+  border: 1px solid #f56c6c;
+  border-radius: 4px;
+  background-color: #fef0f0;
+}
+
+.danger-title {
+  color: #f56c6c;
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.danger-description {
+  color: #606266;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+.delete-warning {
+  margin-bottom: 20px;
+}
+
+.delete-form {
+  margin-top: 20px;
+}
+
+.confirm-hint {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 5px;
+}
+
+.confirm-hint strong {
+  color: #f56c6c;
 }
 </style>

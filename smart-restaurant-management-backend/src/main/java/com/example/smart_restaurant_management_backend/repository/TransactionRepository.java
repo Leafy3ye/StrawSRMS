@@ -2,8 +2,12 @@ package com.example.smart_restaurant_management_backend.repository;
 
 import com.example.smart_restaurant_management_backend.model.Transaction;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -41,4 +45,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // 根据租户ID计算今日总收入
     @Query("SELECT COALESCE(SUM(t.totalAmount), 0.0) FROM Transaction t WHERE t.tenantId = ?1 AND DATE(t.createdAt) = CURRENT_DATE")
     Double sumTodayRevenueByTenantId(String tenantId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Transaction t WHERE t.tenantId = :tenantId")
+    void deleteByTenantId(@Param("tenantId") String tenantId);
 }
