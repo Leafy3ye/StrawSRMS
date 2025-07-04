@@ -11,6 +11,9 @@ public class TableEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(name = "tenant_id", nullable = false, length = 50)
+    private String tenantId;
+
     @Column(nullable = false, length = 50)
     private String name;
 
@@ -42,6 +45,14 @@ public class TableEntity {
 
     public void setId(Integer id) {
         this.id = id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getName() {

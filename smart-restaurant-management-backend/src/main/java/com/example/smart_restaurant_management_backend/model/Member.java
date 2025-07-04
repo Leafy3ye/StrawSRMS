@@ -17,6 +17,10 @@ public class Member implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 添加租户ID字段
+    @Column(name = "tenant_id", nullable = false, length = 50)
+    private String tenantId;
+
     @Column(nullable = false)
     private String name;
 
@@ -57,6 +61,15 @@ public class Member implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    // 添加 tenantId 的 getter 和 setter
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getName() {

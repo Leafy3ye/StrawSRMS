@@ -23,6 +23,10 @@ public class RechargeRecord {
 
     private String remark;
 
+    // 添加租户ID字段
+    @Column(name = "tenant_id", nullable = false)
+    private String tenantId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -70,6 +74,15 @@ public class RechargeRecord {
 
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+
+    // 添加租户ID的getter和setter
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public LocalDateTime getCreatedAt() {

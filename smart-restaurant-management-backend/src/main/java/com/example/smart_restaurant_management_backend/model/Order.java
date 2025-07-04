@@ -12,6 +12,10 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    // 添加租户ID字段
+    @Column(name = "tenant_id", nullable = false)
+    private String tenantId;
+
     @Column(name = "table_id", nullable = false)
     private Integer tableId;
 
@@ -104,5 +108,14 @@ public class Order {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    // 添加租户ID的getter和setter
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }

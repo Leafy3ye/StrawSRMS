@@ -14,6 +14,11 @@ export default defineConfig({
       deleteOriginFile: false
     })
   ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src')
+    }
+  },
   base: '/',
   build: {
     target: 'es2015',

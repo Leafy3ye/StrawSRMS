@@ -19,7 +19,7 @@ app.use(router);
 
 // 在 Pinia 完成注册后，访问 Store
 const userStore = useUserStore(); 
-userStore.loadUser();
+userStore.loadFromStorage(); // 修改方法名
 
 // 挂载应用
 app.mount("#app");

@@ -3,22 +3,26 @@ package com.example.smart_restaurant_management_backend.repository;
 import com.example.smart_restaurant_management_backend.model.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Long> {
+    // 根据租户ID查询会员
+    List<Member> findByTenantId(String tenantId);
     
-    // 根据手机号查询会员
-    Optional<Member> findByPhone(String phone);
+    // 根据租户ID和会员ID查询
+    Optional<Member> findByIdAndTenantId(Long id, String tenantId);
     
-    // 根据邮箱查询会员
-    Optional<Member> findByEmail(String email);
+    // 根据租户ID和姓名模糊查询
+    List<Member> findByTenantIdAndNameContaining(String tenantId, String keyword);
     
-    // 根据姓名模糊查询会员
-    List<Member> findByNameContaining(String name);
+    // 根据租户ID和手机号查询
+    Optional<Member> findByTenantIdAndPhone(String tenantId, String phone);
     
-    // 根据手机号模糊查询会员
-    List<Member> findByPhoneContaining(String phone);
+    // 根据租户ID和邮箱查询
+    Optional<Member> findByTenantIdAndEmail(String tenantId, String email);
+    
+    // 兼容旧方法
+    List<Member> findByNameContaining(String keyword);
 }

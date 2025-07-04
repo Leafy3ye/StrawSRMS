@@ -8,10 +8,11 @@ import com.example.smart_restaurant_management_backend.repository.UserRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import javax.annotation.PostConstruct;
 import java.util.Optional;
 import java.util.UUID;
+import com.example.smart_restaurant_management_backend.dto.RestaurantSetupRequest;
+import com.example.smart_restaurant_management_backend.model.UserType;
 
 @Service
 public class UserService {
@@ -35,6 +36,10 @@ public class UserService {
             User admin = new User();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode("admin"));
+            admin.setEmail("398670671@xx.com");
+            admin.setPhone("13800000000");
+            admin.setUserType(UserType.SUPER_ADMIN);  // ✅ 设置为超级管理员
+            admin.setEmailVerified(true);             // ✅ 设置邮箱已验证
             // UUID会在@PrePersist中自动生成
             userRepository.save(admin);
         }
@@ -118,50 +123,34 @@ public class UserService {
             throw new RuntimeException("邮件验证码错误或已过期");
         }
 
-        // 检查用户名是否已存在
+        // 验证用户名、邮箱等是否已存在
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
             throw new RuntimeException("用户名已存在");
         }
-
-        // 检查邮箱是否已存在
-        if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new RuntimeException("邮箱已被注册");
-        }
-
-        // 检查手机号是否已存在
-        if (userRepository.existsByPhone(registerRequest.getPhone())) {
-            throw new RuntimeException("手机号已被注册");
-        }
         
-        // 验证用户名格式
-        if (!isValidUsername(registerRequest.getUsername())) {
-            throw new RuntimeException("用户名格式不正确，只能包含字母、数字和下划线，长度3-20个字符");
-        }
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setEmail(registerRequest.getEmail());
+        user.setPhone(registerRequest.getPhone());
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setUserType(UserType.TENANT);
+        user.setSetupCompleted(false);
+        // uuid会在@PrePersist中自动生成
         
-        // 验证密码长度
-        if (registerRequest.getPassword().length() < 6 || registerRequest.getPassword().length() > 20) {
-            throw new RuntimeException("密码长度必须在6-20个字符之间");
-        }
-
-        // 验证邮箱格式
-        if (!isValidEmail(registerRequest.getEmail())) {
-            throw new RuntimeException("邮箱格式不正确");
-        }
-
-        // 验证手机号格式
-        if (!isValidPhone(registerRequest.getPhone())) {
-            throw new RuntimeException("手机号格式不正确");
-        }
+        User savedUser = userRepository.save(user);
+        return convertToDTO(savedUser);
+    }
+    
+    public UserDTO completeSetup(String uuid, RestaurantSetupRequest request) {
+        User user = userRepository.findByUuid(uuid)
+            .orElseThrow(() -> new RuntimeException("用户不存在"));
+            
+        user.setRestaurantName(request.getRestaurantName());
+        user.setRestaurantAddress(request.getRestaurantAddress());
+        user.setRestaurantPhone(request.getRestaurantPhone());
+        user.setSetupCompleted(true);
         
-        // 创建新用户
-        User newUser = new User();
-        newUser.setUsername(registerRequest.getUsername());
-        newUser.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        newUser.setEmail(registerRequest.getEmail());
-        newUser.setPhone(registerRequest.getPhone());
-        newUser.setEmailVerified(true); // 通过邮件验证码验证后设为已验证
-        
-        User savedUser = userRepository.save(newUser);
+        User savedUser = userRepository.save(user);
         return convertToDTO(savedUser);
     }
 
@@ -179,6 +168,7 @@ public class UserService {
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
+        dto.setTenantId(user.getTenantId());  // 添加这行！
         dto.setUuid(user.getUuid());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());

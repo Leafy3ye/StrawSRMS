@@ -2,6 +2,7 @@ package com.example.smart_restaurant_management_backend.dto;
 
 public class UserDTO {
     private Long id;
+    private String tenantId;
     private String uuid;
     private String username;
     private String email;
@@ -17,6 +18,14 @@ public class UserDTO {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getUuid() {

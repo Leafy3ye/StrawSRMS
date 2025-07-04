@@ -5,13 +5,21 @@ import com.example.smart_restaurant_management_backend.dto.RegisterRequestDTO;
 import com.example.smart_restaurant_management_backend.dto.UpdateUserDTO;
 import com.example.smart_restaurant_management_backend.dto.UserDTO;
 import com.example.smart_restaurant_management_backend.service.UserService;
-import com.example.smart_restaurant_management_backend.service.EmailService;  // 添加这行
-import com.example.smart_restaurant_management_backend.service.CaptchaService;  // 添加这行
+import com.example.smart_restaurant_management_backend.service.EmailService;
+import com.example.smart_restaurant_management_backend.service.CaptchaService;
+import com.example.smart_restaurant_management_backend.context.TenantContext;
+import com.example.smart_restaurant_management_backend.util.JwtUtil;
+
+// 添加 Spring Web 相关的 import
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map;  // 添加这行
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,6 +29,9 @@ public class UserController {
     private UserService userService;
 
     @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
     private EmailService emailService;
 
     @Autowired
@@ -28,11 +39,34 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
-        UserDTO user = userService.login(loginRequest);
-        if (user != null) {
-            return ResponseEntity.ok(user);
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("用户名或密码错误");
+        try {
+            UserDTO user = userService.login(loginRequest);
+            if (user != null) {
+                // 生成 JWT Token
+                List<String> roles = Arrays.asList("USER"); // 根据实际角色设置
+                String token = jwtUtil.generateToken(
+                    user.getUsername(), 
+                    user.getTenantId(), 
+                    roles
+                );
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("token", token);
+                response.put("user", user);
+                response.put("message", "登录成功");
+                
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "用户名或密码错误");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(errorResponse);
+            }
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "登录失败: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorResponse);
         }
     }
 

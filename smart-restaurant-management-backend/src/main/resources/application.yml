@@ -7,8 +7,30 @@ server:
     min-response-size: 1024
 
 spring:
+  # 邮件配置（从 application.properties 迁移过来）
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: 3918743392@qq.com
+    password: hwkdhvkdgqabcdeh
+    default-encoding: UTF-8
+    protocol: smtps
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            enable: true
+          debug: true
+
   datasource:
-    url: jdbc:mysql://localhost:3306/coffee_management_database?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/smart_restaurant_multitenant?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
     username: root
     password: Yexiajia0422.
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -19,10 +41,10 @@ spring:
     hibernate:
       ddl-auto: update
     properties:
-      hibernate.format_sql: false  # 生产环境关闭SQL日志
+      hibernate.format_sql: false
+      hibernate.show_sql: false
     database-platform: org.hibernate.dialect.MySQL8Dialect
 
-  # 生产环境配置
   profiles:
     active: prod
 
@@ -36,6 +58,16 @@ spring:
         max-wait: -1ms
         max-idle: 8
         min-idle: 0
+
+# 在现有配置后添加
+# JWT 配置
+jwt:
+  secret: ${JWT_SECRET:SmartRestaurantJWT2024SecretKeyForDevelopmentOnlyPleaseChangeInProduction}
+  expiration: ${JWT_EXPIRATION:86400000}  # 24小时
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}  # 7天
+  issuer: smart-restaurant-management
+  header: Authorization
+  prefix: "Bearer "
 
 # 日志配置
 logging:

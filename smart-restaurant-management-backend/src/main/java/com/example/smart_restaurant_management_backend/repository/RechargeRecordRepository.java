@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface RechargeRecordRepository extends JpaRepository<RechargeRecord, Long> {
-    
+    List<RechargeRecord> findByMemberIdAndTenantIdOrderByCreatedAtDesc(Long memberId, String tenantId);
+    List<RechargeRecord> findByTenantId(String tenantId);
     List<RechargeRecord> findByMemberIdOrderByCreatedAtDesc(Long memberId);
 }

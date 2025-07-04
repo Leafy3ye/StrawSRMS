@@ -11,6 +11,10 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    // 添加租户ID字段
+    @Column(name = "tenant_id", nullable = false)
+    private String tenantId;
+
     @Column(name = "table_id", nullable = false)
     private Integer tableId;
 
@@ -34,14 +38,24 @@ public class Transaction {
     // 构造函数
     public Transaction() {}
 
-    public Transaction(Integer tableId, String tableName, Double totalAmount, Integer orderCount) {
+    // 修改构造函数
+    public Transaction(String tenantId, Integer tableId, String tableName, Double totalAmount, Integer orderCount) {
+        this.tenantId = tenantId;
         this.tableId = tableId;
         this.tableName = tableName;
         this.totalAmount = totalAmount;
         this.orderCount = orderCount;
     }
 
-    // Getters and Setters
+    // 添加租户ID的getter和setter
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
     public Integer getId() { return id; }
     public void setId(Integer id) { this.id = id; }
 

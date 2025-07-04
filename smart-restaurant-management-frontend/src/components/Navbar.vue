@@ -20,7 +20,17 @@
         <span>首页</span>
       </el-menu-item>
       
-      <!-- 会员管理下拉菜单 -->
+      <el-menu-item index="/list" @click="checkAuth('/list')">
+        <el-icon><Document /></el-icon>
+        <span>菜单管理</span>
+      </el-menu-item>
+      
+      <el-menu-item index="/main" @click="checkAuth('/main')">
+        <el-icon><Edit /></el-icon>
+        <span>桌位管理</span>
+      </el-menu-item>
+      
+            <!-- 会员管理下拉菜单 -->
       <el-sub-menu index="/members">
         <template #title>
           <el-icon><User /></el-icon>
@@ -33,16 +43,6 @@
           <span>会员政策</span>
         </el-menu-item>
       </el-sub-menu>
-      
-      <el-menu-item index="/list" @click="checkAuth('/list')">
-        <el-icon><Document /></el-icon>
-        <span>菜单管理</span>
-      </el-menu-item>
-      
-      <el-menu-item index="/main" @click="checkAuth('/main')">
-        <el-icon><Edit /></el-icon>
-        <span>桌位管理</span>
-      </el-menu-item>
 
       <!-- 系统设置下拉菜单 -->
       <el-sub-menu index="/settings">

@@ -12,6 +12,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 添加租户ID字段 - 用于多租户隔离
+    @Column(name = "tenant_id", nullable = false)
+    private String tenantId;
+
     // 添加UUID字段 - 用于商业化多租户系统的用户唯一标识
     @Column(nullable = false, unique = true, updatable = false)
     private String uuid;
@@ -44,12 +48,15 @@ public class User {
 
     @PrePersist
     protected void onCreate() {
-        // 自动生成UUID
         if (uuid == null) {
-            uuid = UUID.randomUUID().toString();
+            uuid = java.util.UUID.randomUUID().toString();
         }
-        createdAt = new Date();
-        updatedAt = new Date();
+        if (tenantId == null) {
+            // 如果没有设置租户ID，使用UUID作为默认租户ID
+            tenantId = uuid;
+        }
+        createdAt = new Date();  // 修改：使用Date而不是LocalDateTime
+        updatedAt = createdAt;
     }
 
     @PreUpdate
@@ -138,5 +145,74 @@ public class User {
 
     public void setEmailVerified(Boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+    
+    // 添加用户类型枚举
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_type")
+    private UserType userType = UserType.TENANT;
+    
+    // 餐厅信息
+    @Column(name = "restaurant_name")
+    private String restaurantName;
+    
+    @Column(name = "restaurant_address")
+    private String restaurantAddress;
+    
+    @Column(name = "restaurant_phone")
+    private String restaurantPhone;
+    
+    // 设置完成标志
+    @Column(name = "setup_completed")
+    private Boolean setupCompleted = false;
+
+    public String getRestaurantName() {
+        return restaurantName;
+    }
+
+    public void setRestaurantName(String restaurantName) {
+        this.restaurantName = restaurantName;
+    }
+
+    // 在 User.java 的最后添加缺失的 getter/setter 方法
+    public UserType getUserType() {
+        return userType;
+    }
+    
+    public void setUserType(UserType userType) {
+        this.userType = userType;
+    }
+    
+    public String getRestaurantAddress() {
+        return restaurantAddress;
+    }
+    
+    public void setRestaurantAddress(String restaurantAddress) {
+        this.restaurantAddress = restaurantAddress;
+    }
+    
+    public String getRestaurantPhone() {
+        return restaurantPhone;
+    }
+    
+    public void setRestaurantPhone(String restaurantPhone) {
+        this.restaurantPhone = restaurantPhone;
+    }
+    
+    public Boolean getSetupCompleted() {
+        return setupCompleted;
+    }
+    
+    public void setSetupCompleted(Boolean setupCompleted) {
+        this.setupCompleted = setupCompleted;
+    }
+    
+    // 添加租户ID的getter和setter
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 }

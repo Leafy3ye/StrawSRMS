@@ -5,6 +5,7 @@ import com.example.smart_restaurant_management_backend.model.Order;
 import com.example.smart_restaurant_management_backend.model.Dish;
 import com.example.smart_restaurant_management_backend.model.Transaction;
 import com.example.smart_restaurant_management_backend.model.TableEntity;
+import com.example.smart_restaurant_management_backend.context.TenantContext;
 import com.example.smart_restaurant_management_backend.repository.OrderRepository;
 import com.example.smart_restaurant_management_backend.repository.DishRepository;
 import org.springframework.stereotype.Service;
@@ -27,19 +28,32 @@ public class OrderService {
         this.dishRepository = dishRepository;
         this.transactionService = transactionService;
         this.tableService = tableService;
-    }    // 查询所有订单
+    }    // 修复：查询所有订单 - 添加租户过滤
 
     public List<Order> findAll() {
-        return orderRepository.findAll();
-    }// 根据桌位ID查询未完成订单
-
-    public List<Order> findByTableId(Integer tableId) {
-        // 调用自定义的查询，获取指定桌位且未完成的订单
-        return orderRepository.findByTableIdAndCompletedFalse(tableId);
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        return orderRepository.findByTenantId(currentTenantId);
     }
 
+    // 修复：根据桌位ID查询未完成订单 - 添加租户过滤
+    public List<Order> findByTableId(Integer tableId) {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        return orderRepository.findByTenantIdAndTableIdAndCompletedFalse(currentTenantId, tableId);
+    }
+
+    // 修复：查询订单详情 - 添加租户过滤
     public List<OrderDetailDTO> findOrderDetailsByTableId(Integer tableId) {
-        List<Order> orders = orderRepository.findByTableIdAndCompletedFalse(tableId);
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        List<Order> orders = orderRepository.findByTenantIdAndTableIdAndCompletedFalse(currentTenantId, tableId);
         return orders.stream().map(order -> {
             Optional<Dish> dish = dishRepository.findById(order.getDishId().longValue());
             if (dish.isPresent()) {
@@ -72,50 +86,92 @@ public class OrderService {
         }).collect(Collectors.toList());
     }// 保存订单
 
+    // 修复：根据ID查找订单 - 添加租户过滤
     public Optional<Order> findById(Integer id) {
-        return orderRepository.findById(id);
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        return orderRepository.findByIdAndTenantId(id, currentTenantId);
     }
 
+    // 修复：保存订单 - 设置租户ID
     public Order save(Order order) {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        order.setTenantId(currentTenantId);
         return orderRepository.save(order);
     }
 
+    // 修复：删除订单 - 添加租户验证
     public void deleteById(Integer id) {
-        orderRepository.deleteById(id);
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        Optional<Order> order = orderRepository.findByIdAndTenantId(id, currentTenantId);
+        if (order.isPresent()) {
+            orderRepository.deleteById(id);
+        } else {
+            throw new RuntimeException("订单不存在或无权限删除");
+        }
     }
 
+    // 修复：删除桌位所有订单 - 添加租户过滤
     public void deleteByTableId(Integer tableId) {
-        // 删除该桌位的所有订单（包括已完成和未完成的）
-        List<Order> allOrders = orderRepository.findByTableId(tableId);
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        List<Order> allOrders = orderRepository.findByTenantIdAndTableId(currentTenantId, tableId);
         orderRepository.deleteAll(allOrders);
     }
+
+    // 修复：结账方法 - 添加租户过滤
     public Transaction checkout(Integer tableId) {
-        // 获取桌位信息
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        // 获取桌位信息（TableService已经有租户过滤）
         Optional<TableEntity> tableOpt = tableService.findById(tableId);
         String tableName = tableOpt.map(TableEntity::getName).orElse("桌位" + tableId);
-        // 获取未完成的订单
-        List<Order> orders = orderRepository.findByTableIdAndCompletedFalse(tableId);
+        
+        // 获取当前租户的未完成订单
+        List<Order> orders = orderRepository.findByTenantIdAndTableIdAndCompletedFalse(currentTenantId, tableId);
         if (orders.isEmpty()) {
             throw new RuntimeException("没有未完成的订单");
         }
+        
         // 计算总金额
         Double totalAmount = orders.stream()
                 .mapToDouble(order -> order.getPrice() * order.getQuantity())
                 .sum();
-        // 创建交易记录
-        Transaction transaction = new Transaction(tableId, tableName, totalAmount, orders.size());
+        
+        // 获取租户ID（从订单中获取，假设同一桌位的订单都属于同一租户）
+        String tenantId = orders.get(0).getTenantId(); // 需要确保Order类有getTenantId方法
+        
+        // 创建交易记录 - 修复构造器调用
+        Transaction transaction = new Transaction(tenantId, tableId, tableName, totalAmount, orders.size());
         Transaction savedTransaction = transactionService.save(transaction);
         
-        // 结算后直接删除订单记录（而不是标记为已完成）
+        // 删除订单记录
         orderRepository.deleteAll(orders);
         
         return savedTransaction;
     }
-    
-    // 新增：桌位订单转移方法
-    // 在类的末尾添加以下方法
+
+    // 修复：订单转移 - 添加租户过滤
     public void transferOrders(Integer fromTableId, Integer toTableId) {
-        // 验证桌位是否存在
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        // 验证桌位是否存在（TableService已经有租户过滤）
         Optional<TableEntity> fromTable = tableService.findById(fromTableId);
         Optional<TableEntity> toTable = tableService.findById(toTableId);
         
@@ -126,8 +182,8 @@ public class OrderService {
             throw new RuntimeException("目标桌位不存在");
         }
         
-        // 获取源桌位的未完成订单
-        List<Order> ordersToTransfer = orderRepository.findByTableIdAndCompletedFalse(fromTableId);
+        // 获取当前租户的源桌位未完成订单
+        List<Order> ordersToTransfer = orderRepository.findByTenantIdAndTableIdAndCompletedFalse(currentTenantId, fromTableId);
         
         if (ordersToTransfer.isEmpty()) {
             throw new RuntimeException("源桌位没有未完成的订单");

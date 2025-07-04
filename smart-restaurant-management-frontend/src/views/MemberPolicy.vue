@@ -142,36 +142,12 @@ const loadPolicies = async () => {
     policies.value = [
       {
         id: 1,
-        level: '普通会员',
+        level: '待开发',
         discount: 1,
         pointRate: 1,
-        benefits: '积分累积享优惠、会员专属活动通知、生日祝福及小礼品',
-        upgradeCondition: '累计消费满500元'
+        benefits: '待开发',
+        upgradeCondition: '待开发'
       },
-      {
-        id: 2,
-        level: '银卡会员',
-        discount: 0.95,
-        pointRate: 2,
-        benefits: '享受95折优惠、生日当月免费饮品一杯、积分双倍累积',
-        upgradeCondition: '累计消费满2000元'
-      },
-      {
-        id: 3,
-        level: '金卡会员',
-        discount: 0.9,
-        pointRate: 3,
-        benefits: '享受9折优惠、每月免费饮品两杯、积分三倍累积、专属客服服务',
-        upgradeCondition: '累计消费满5000元'
-      },
-      {
-        id: 4,
-        level: '钻石会员',
-        discount: 0.85,
-        pointRate: 5,
-        benefits: '享受85折优惠、每月免费饮品三杯、积分五倍累积、VIP专属座位、新品优先体验',
-        upgradeCondition: '累计消费满10000元或特别邀请'
-      }
     ];
   } catch (error) {
     console.error('加载会员政策失败:', error);
