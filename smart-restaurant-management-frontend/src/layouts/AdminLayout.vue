@@ -47,12 +47,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: var(--bg-content-color, #f0f2f5);
 }
 
 .content {
   flex: 1;
   padding: 20px;
-  background-color: #f0f2f5;
+  background-color: var(--bg-content-color, #f0f2f5);
   overflow-y: auto;
 }
 </style>

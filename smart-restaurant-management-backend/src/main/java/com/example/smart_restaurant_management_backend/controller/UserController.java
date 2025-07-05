@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
 import com.fasterxml.jackson.databind.ObjectMapper; // 添加这行导入
+import java.util.HashMap;
 
 @RestController
 @RequestMapping("/api/users")
@@ -266,6 +267,35 @@ public class UserController {
             return ResponseEntity.ok("密码重置成功");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("密码重置失败：" + e.getMessage());
+        }
+    }
+
+    // 获取主题设置
+    @GetMapping("/theme-settings")
+    public ResponseEntity<?> getThemeSettings() {
+        try {
+            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            if (currentTenantId == null) {
+                return ResponseEntity.badRequest().body("未找到当前租户信息");
+            }
+            
+            UserDTO user = userService.getUserByTenantId(currentTenantId);
+            if (user != null) {
+                // 返回主题设置，如果为空则返回空对象
+                String themeSettings = user.getThemeSettings();
+                if (themeSettings == null || themeSettings.isEmpty()) {
+                    return ResponseEntity.ok(new HashMap<>());
+                }
+                
+                // 解析JSON字符串并返回
+                ObjectMapper objectMapper = new ObjectMapper();
+                Map<String, Object> themeMap = objectMapper.readValue(themeSettings, Map.class);
+                return ResponseEntity.ok(themeMap);
+            } else {
+                return ResponseEntity.badRequest().body("用户不存在");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("获取主题设置失败: " + e.getMessage());
         }
     }
 

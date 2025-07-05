@@ -32,7 +32,8 @@
       </div>
     </el-card>
 
-    <!-- 主题背景配色 -->
+    <!-- 主题背景配色 - 暂时移除 -->
+    <!-- 
     <el-card class="theme-card">
       <template #header>
         <span>主题背景配色</span>
@@ -58,6 +59,7 @@
         </div>
       </div>
     </el-card>
+    -->
 
     <!-- 预览和保存 -->
     <el-card class="theme-card">
@@ -100,7 +102,7 @@ const saving = ref(false)
 // 当前主题配置
 const currentTheme = reactive({
   navbar: 'default',
-  background: 'light'
+  background: 'light' // 固定为默认白色背景
 })
 
 // 导航栏主题选项
@@ -122,67 +124,23 @@ const navbarThemes = [
     text: '#ffffff'
   },
   {
-    name: '商务蓝',
-    value: 'business',
-    primary: '#2c3e50',
-    active: '#3498db',
-    border: '#34495e',
-    text: '#ecf0f1'
-  },
-  {
-    name: '优雅紫',
-    value: 'purple',
-    primary: '#6a1b9a',
-    active: '#ab47bc',
-    border: '#7b1fa2',
-    text: '#f3e5f5'
-  },
-  {
-    name: '森林绿',
-    value: 'green',
-    primary: '#2e7d32',
-    active: '#66bb6a',
-    border: '#388e3c',
-    text: '#e8f5e8'
+    name: '温馨米白',
+    value: 'cream',
+    primary: '#faf9f7',
+    active: '#409EFF',
+    border: '#e8e6e3',
+    text: '#5a5a5a'
   }
 ]
 
-// 背景主题选项
+// 背景主题选项 - 固定为默认白色
 const backgroundThemes = [
   {
-    name: '明亮白',
+    name: '正常白色',
     value: 'light',
     primary: '#f0f2f5',
     content: '#ffffff',
     text: '#2c3e50'
-  },
-  {
-    name: '暗夜黑',
-    value: 'dark',
-    primary: '#1a1a1a',
-    content: '#2d2d2d',
-    text: '#ffffff'
-  },
-  {
-    name: '护眼绿',
-    value: 'eye-care',
-    primary: '#f0f4f0',
-    content: '#fafcfa',
-    text: '#2c3e50'
-  },
-  {
-    name: '温暖米',
-    value: 'warm',
-    primary: '#f5f3f0',
-    content: '#faf9f7',
-    text: '#3c3c3c'
-  },
-  {
-    name: '冷调蓝',
-    value: 'cool',
-    primary: '#f0f4f8',
-    content: '#f8fafc',
-    text: '#2d3748'
   }
 ]
 
@@ -192,11 +150,11 @@ const selectNavbarTheme = (theme) => {
   applyThemePreview()
 }
 
-// 选择背景主题
-const selectBackgroundTheme = (theme) => {
-  currentTheme.background = theme.value
-  applyThemePreview()
-}
+// 选择背景主题 - 暂时移除功能
+// const selectBackgroundTheme = (theme) => {
+//   currentTheme.background = theme.value
+//   applyThemePreview()
+// }
 
 // 获取预览样式
 const getPreviewStyle = () => {
@@ -236,7 +194,7 @@ const saveTheme = async () => {
     
     const themeData = {
       navbarTheme: currentTheme.navbar,
-      backgroundTheme: currentTheme.background
+      backgroundTheme: 'light' // 固定为默认白色背景
     }
     
     await api.put('/api/users/theme-settings', themeData)
@@ -262,10 +220,10 @@ const saveTheme = async () => {
   }
 }
 
-// 应用全局主题（修复：删除重复声明）
+// 应用全局主题 - 移除滤镜效果
 const applyGlobalTheme = (themeData) => {
   const navTheme = navbarThemes.find(t => t.value === themeData.navbarTheme)
-  const bgTheme = backgroundThemes.find(t => t.value === themeData.backgroundTheme)
+  const bgTheme = backgroundThemes.find(t => t.value === 'light') // 固定使用默认白色背景
   
   if (navTheme && bgTheme) {
     // 设置CSS变量
@@ -278,13 +236,28 @@ const applyGlobalTheme = (themeData) => {
     root.style.setProperty('--bg-primary-color', bgTheme.primary)
     root.style.setProperty('--bg-content-color', bgTheme.content)
     root.style.setProperty('--bg-text-color', bgTheme.text)
+    
+    // 设置根元素背景色
+    root.style.backgroundColor = bgTheme.primary
+    
+    // 移除之前的滤镜效果
+    const mainContent = document.querySelector('.main-container')
+    if (mainContent) {
+      mainContent.style.filter = 'none'
+    }
+    
+    // 移除媒体元素的滤镜
+    const mediaElements = document.querySelectorAll('img, video, iframe, canvas')
+    mediaElements.forEach(el => {
+      el.style.filter = 'none'
+    })
   }
 }
 
 // 重置主题
 const resetTheme = () => {
   currentTheme.navbar = 'default'
-  currentTheme.background = 'light'
+  currentTheme.background = 'light' // 固定为默认白色背景
   applyThemePreview()
 }
 
@@ -293,8 +266,12 @@ const loadUserTheme = () => {
   if (userStore.user?.themeSettings) {
     const settings = userStore.user.themeSettings
     currentTheme.navbar = settings.navbarTheme || 'default'
-    currentTheme.background = settings.backgroundTheme || 'light'
-    applyGlobalTheme(settings)
+    currentTheme.background = 'light' // 固定为默认白色背景
+    // 应用主题时也固定使用白色背景
+    applyGlobalTheme({
+      navbarTheme: settings.navbarTheme || 'default',
+      backgroundTheme: 'light'
+    })
   }
 }
 

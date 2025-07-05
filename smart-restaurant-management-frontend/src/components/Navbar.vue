@@ -154,23 +154,11 @@ const navbarThemes = {
     active: '#60a5fa',
     border: '#374151'
   },
-  blue: {
-    primary: '#1e40af',
-    text: '#dbeafe',
-    active: '#fbbf24',
-    border: '#3b82f6'
-  },
-  purple: {
-    primary: '#7c3aed',
-    text: '#e9d5ff',
-    active: '#fbbf24',
-    border: '#8b5cf6'
-  },
-  green: {
-    primary: '#059669',
-    text: '#d1fae5',
-    active: '#fbbf24',
-    border: '#10b981'
+  cream: {
+    primary: '#faf9f7',
+    text: '#5a5a5a',
+    active: '#409EFF',
+    border: '#e8e6e3'
   }
 }
 

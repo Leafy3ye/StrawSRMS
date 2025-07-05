@@ -13,7 +13,7 @@
   
   <style scoped>
   .footer-bar {
-    background-color: #f5f5f5;
+    background-color: var(--bg-content-color, #f5f5f5);
     text-align: center;
     padding: 20px 0;
     color: #666;

@@ -212,14 +212,14 @@ const generateChartDataFromTransactions = (transactions) => {
   for (let i = 6; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = date.toLocaleDateString('zh-CN');
     weekDates.push(date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }));
     
     const dayTransactions = transactions.filter(t => {
       // 使用 createdAt 字段
       if (!t.createdAt) return false;
       const transDate = new Date(t.createdAt);
-      return transDate.toISOString().split('T')[0] === dateStr;
+      return transDate.toLocaleDateString('zh-CN') === dateStr;
     });
     
     weekOrders.push(dayTransactions.length);
@@ -744,13 +744,12 @@ const loadStats = async () => {
     
     // 计算今日数据
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD格式
-    
+    const todayStr = today.toLocaleDateString('zh-CN');
     const todayTransactions = allTransactions.filter(transaction => {
-      if (!transaction.createdAt) return false;
-      const transactionDate = new Date(transaction.createdAt);
-      const transactionDateStr = transactionDate.toISOString().split('T')[0];
-      return transactionDateStr === todayStr;
+    if (!transaction.createdAt) return false;
+    const transactionDate = new Date(transaction.createdAt);
+    const transactionDateStr = transactionDate.toLocaleDateString('zh-CN');
+    return transactionDateStr === todayStr;
     });
     
     console.log('今日交易记录:', todayTransactions.length, '条');
@@ -908,7 +907,8 @@ onUnmounted(() => {
   max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
-  background-color: #ffffff;
+  background-color: var(--bg-content-color, #ffffff);
+  color: var(--bg-text-color, #2c3e50);
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -922,12 +922,14 @@ onUnmounted(() => {
   margin: 0 0 10px 0;
   font-size: 28px;
   font-weight: 600;
+  color: var(--bg-text-color, #2c3e50);
 }
 
 .current-time {
   margin: 0;
   font-size: 16px;
-  color: #666;
+  color: var(--bg-text-color, #666);
+  opacity: 0.8;
   font-weight: 400;
 }
 
@@ -974,7 +976,7 @@ onUnmounted(() => {
 .chart-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #303133;
+  color: var(--bg-text-color, #303133);
 }
 
 .chart {

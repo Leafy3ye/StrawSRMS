@@ -161,9 +161,9 @@ const loadData = async () => {
     if (statType === 'today-orders' || statType === 'today-revenue') {
       // 获取今日数据
       response = await api.get('/api/transactions');
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toLocaleDateString('zh-CN');
       transactions.value = response.data.filter(t => {
-        const transDate = new Date(t.createdAt).toISOString().split('T')[0];
+        const transDate = new Date(t.createdAt).toLocaleDateString('zh-CN');
         return transDate === today;
       });
     } else {

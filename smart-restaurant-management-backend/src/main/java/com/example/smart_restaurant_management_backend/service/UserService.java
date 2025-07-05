@@ -433,4 +433,14 @@ public class UserService {
         }
         return null;
     }
+
+    /**
+     * 根据租户ID获取用户信息
+     * @param tenantId 租户ID
+     * @return 用户DTO
+     */
+    public UserDTO getUserByTenantId(String tenantId) {
+        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        return userOpt.map(this::convertToDTO).orElse(null);
+    }
 }
