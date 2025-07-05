@@ -1,9 +1,14 @@
 <template>
-  <div class="sidebar-container">
+  <div class="sidebar-container" :style="{
+    backgroundColor: currentNavbarTheme.primary
+  }">
     <!-- Logo区域 -->
-    <div class="logo-container">
+    <div class="logo-container" :style="{
+      backgroundColor: currentNavbarTheme.primary,
+      borderBottomColor: currentNavbarTheme.border || '#434a5a'
+    }">
       <img :src="logoUrl" alt="logo" class="logo-img" />
-      <span class="logo-title">{{ userStore.shopName || '智慧餐饮解决方案' }}</span>
+      <span class="logo-title" :style="{ color: currentNavbarTheme.text }">{{ userStore.shopName || '智慧餐饮解决方案' }}</span>
     </div>
     
     <!-- 导航菜单 -->
@@ -11,9 +16,9 @@
       mode="vertical"
       :default-active="activeMenu"
       class="sidebar-menu"
-      background-color="#304156"
-      text-color="#bfcbd9"
-      active-text-color="#409EFF"
+      :background-color="currentNavbarTheme.primary"
+      :text-color="currentNavbarTheme.text"
+      :active-text-color="currentNavbarTheme.active"
     >
       <el-menu-item index="/" @click="navigateTo('/')">
         <el-icon><House /></el-icon>
@@ -72,7 +77,10 @@
     </el-menu>
 
     <!-- 用户信息区域（已登录时显示） -->
-    <div v-if="isLoggedIn" class="user-info">
+    <div v-if="isLoggedIn" class="user-info" :style="{
+      backgroundColor: currentNavbarTheme.primary,
+      borderTopColor: currentNavbarTheme.border || '#434a5a'
+    }">
       <el-dropdown trigger="click" @command="handleCommand">
         <div class="user-avatar-container">
           <div class="user-avatar">
@@ -81,9 +89,9 @@
             </el-avatar>
           </div>
           <div class="user-details">
-            <div class="username">{{ userStore.user.username }}</div>
+            <div class="username" :style="{ color: currentNavbarTheme.text }">{{ userStore.user.username }}</div>
           </div>
-          <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
+          <el-icon class="dropdown-icon" :style="{ color: currentNavbarTheme.text }"><ArrowDown /></el-icon>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -111,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from '../store/user';
 import { 
@@ -131,6 +139,82 @@ const isLoggedIn = computed(() => !!userStore.user);
 
 const showLoginPrompt = ref(false);
 let redirectPath = "";
+
+// 导航栏主题选项
+const navbarThemes = {
+  default: {
+    primary: '#304156',
+    text: '#bfcbd9',
+    active: '#409EFF',
+    border: '#434a5a'
+  },
+  dark: {
+    primary: '#1f2937',
+    text: '#d1d5db',
+    active: '#60a5fa',
+    border: '#374151'
+  },
+  blue: {
+    primary: '#1e40af',
+    text: '#dbeafe',
+    active: '#fbbf24',
+    border: '#3b82f6'
+  },
+  purple: {
+    primary: '#7c3aed',
+    text: '#e9d5ff',
+    active: '#fbbf24',
+    border: '#8b5cf6'
+  },
+  green: {
+    primary: '#059669',
+    text: '#d1fae5',
+    active: '#fbbf24',
+    border: '#10b981'
+  }
+}
+
+// 当前导航栏主题
+const currentNavbarTheme = ref(navbarThemes.default)
+
+// 加载用户主题设置
+const loadUserTheme = () => {
+  if (userStore.user?.themeSettings) {
+    const themeSettings = typeof userStore.user.themeSettings === 'string' 
+      ? JSON.parse(userStore.user.themeSettings) 
+      : userStore.user.themeSettings
+    
+    const navbarTheme = themeSettings.navbarTheme || 'default'
+    currentNavbarTheme.value = navbarThemes[navbarTheme] || navbarThemes.default
+    
+    // 应用CSS变量到全局
+    nextTick(() => {
+      const root = document.documentElement
+      root.style.setProperty('--navbar-bg-color', currentNavbarTheme.value.primary)
+      root.style.setProperty('--navbar-text-color', currentNavbarTheme.value.text)
+      root.style.setProperty('--navbar-active-color', currentNavbarTheme.value.active)
+      root.style.setProperty('--navbar-border-color', currentNavbarTheme.value.border)
+    })
+  } else {
+    // 重置为默认主题
+    currentNavbarTheme.value = navbarThemes.default
+  }
+}
+
+// 监听用户数据变化
+watch(() => userStore.user, (newUser) => {
+  if (newUser) {
+    loadUserTheme()
+  } else {
+    // 用户登出时重置为默认主题
+    currentNavbarTheme.value = navbarThemes.default
+  }
+}, { deep: true, immediate: true })
+
+// 组件挂载时加载主题
+onMounted(() => {
+  loadUserTheme()
+})
 
 // 直接导航的方法
 const navigateTo = (path) => {
@@ -167,15 +251,15 @@ const handleCommand = (command) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #304156;
+  transition: background-color 0.3s ease;
 }
 
 .logo-container {
   display: flex;
   align-items: center;
   padding: 20px 16px;
-  background-color: #2b2f3a;
-  border-bottom: 1px solid #434a5a;
+  border-bottom: 1px solid;
+  transition: all 0.3s ease;
 }
 
 .logo-img {
@@ -188,8 +272,8 @@ const handleCommand = (command) => {
 .logo-title {
   font-size: 18px;
   font-weight: 600;
-  color: #ffffff;
   white-space: nowrap;
+  transition: color 0.3s ease;
 }
 
 .sidebar-menu {
@@ -206,24 +290,14 @@ const handleCommand = (command) => {
   border-radius: 0;
 }
 
-.sidebar-menu .el-menu-item:hover {
-  background-color: #263445 !important;
-}
-
-.sidebar-menu .el-menu-item.is-active {
-  background-color: #409EFF !important;
-  border-right: 3px solid #409EFF;
-  color: #ffffff !important;
-}
-
 .sidebar-menu .el-menu-item span {
   margin-left: 8px;
 }
 
 .user-info {
   padding: 16px;
-  border-top: 1px solid #434a5a;
-  background-color: #2b2f3a;
+  border-top: 1px solid;
+  transition: all 0.3s ease;
 }
 
 .user-avatar-container {
@@ -241,28 +315,19 @@ const handleCommand = (command) => {
 }
 
 .username {
-  color: #ffffff;
   font-size: 14px;
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .dropdown-icon {
-  color: #bfcbd9;
   margin-left: 8px;
+  transition: color 0.3s ease;
 }
 
 /* 添加子菜单样式 */
 .el-sub-menu .el-menu-item {
   padding-left: 40px !important;
   min-width: 200px;
-}
-
-.el-sub-menu .el-menu-item:hover {
-  background-color: #263445 !important;
-}
-
-.el-sub-menu .el-menu-item.is-active {
-  background-color: #409EFF !important;
-  color: #ffffff !important;
 }
 </style>

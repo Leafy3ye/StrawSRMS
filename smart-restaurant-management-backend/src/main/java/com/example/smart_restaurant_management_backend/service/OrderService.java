@@ -9,10 +9,15 @@ import com.example.smart_restaurant_management_backend.context.TenantContext;
 import com.example.smart_restaurant_management_backend.repository.OrderRepository;
 import com.example.smart_restaurant_management_backend.repository.DishRepository;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 
 @Service
 public class OrderService {
@@ -196,5 +201,222 @@ public class OrderService {
         
         // 批量保存更新后的订单
         orderRepository.saveAll(ordersToTransfer);
+    }
+
+    // 获取订单时间分析数据
+    public Map<String, Object> getOrderTimeAnalysis(String period) {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        LocalDateTime endTime = LocalDateTime.now();
+        LocalDateTime startTime;
+        
+        if ("week".equals(period)) {
+            startTime = endTime.minusDays(7);
+        } else {
+            startTime = endTime.minusDays(30);
+        }
+        
+        List<Order> orders = orderRepository.findByTenantIdAndCreatedAtBetween(
+            currentTenantId, startTime, endTime);
+        
+        // 按小时统计订单数量（0-23小时）
+        Map<Integer, Integer> hourlyStats = new HashMap<>();
+        for (int i = 0; i < 24; i++) {
+            hourlyStats.put(i, 0);
+        }
+        
+        for (Order order : orders) {
+            int hour = order.getCreatedAt().getHour();
+            hourlyStats.put(hour, hourlyStats.get(hour) + 1);
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("hourlyStats", hourlyStats);
+        result.put("totalOrders", orders.size());
+        result.put("period", period);
+        
+        return result;
+    }
+
+    // 获取热门菜品统计
+    public List<Map<String, Object>> getPopularDishes(int limit) {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        // 获取所有订单
+        List<Order> orders = orderRepository.findByTenantId(currentTenantId);
+        
+        // 统计每个菜品的销量
+        Map<Integer, Integer> dishQuantityMap = new HashMap<>();
+        Map<Integer, String> dishNameMap = new HashMap<>();
+        
+        for (Order order : orders) {
+            Integer dishId = order.getDishId();
+            dishQuantityMap.put(dishId, 
+                dishQuantityMap.getOrDefault(dishId, 0) + order.getQuantity());
+            
+            // 获取菜品名称（如果还没有缓存）
+            if (!dishNameMap.containsKey(dishId)) {
+                Optional<Dish> dish = dishRepository.findByIdAndTenantId(
+                    dishId.longValue(), currentTenantId);
+                if (dish.isPresent()) {
+                    dishNameMap.put(dishId, dish.get().getName());
+                }
+            }
+        }
+        
+        // 如果数据量不足，返回提示信息
+        if (dishQuantityMap.size() < 3) {
+            List<Map<String, Object>> result = new ArrayList<>();
+            Map<String, Object> noDataMsg = new HashMap<>();
+            noDataMsg.put("message", "缺少数据样本，先营业一段时间看看吧");
+            result.add(noDataMsg);
+            return result;
+        }
+        
+        // 按销量排序并取前N名
+        return dishQuantityMap.entrySet().stream()
+            .sorted(Map.Entry.<Integer, Integer>comparingByValue().reversed())
+            .limit(limit)
+            .map(entry -> {
+                Map<String, Object> item = new HashMap<>();
+                item.put("dishId", entry.getKey());
+                item.put("dishName", dishNameMap.get(entry.getKey()));
+                item.put("quantity", entry.getValue());
+                return item;
+            })
+            .collect(Collectors.toList());
+    }
+
+    // 获取今日订单数量
+    public Long getTodayOrderCount() {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        // 计算今日时间范围（使用应用服务器时区）
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        
+        return orderRepository.countTodayOrdersByTenantId(currentTenantId, startOfDay, endOfDay);
+    }
+
+    public Double getTodayRevenue() {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        // 计算今日时间范围（使用应用服务器时区）
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+        
+        Double result = orderRepository.sumTodayRevenueByTenantId(currentTenantId, startOfDay, endOfDay);
+        return result != null ? result : 0.0;
+    }
+
+    // 获取总订单数量
+    public Long getTotalOrderCount() {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        List<Order> allOrders = orderRepository.findByTenantId(currentTenantId);
+        return (long) allOrders.size();
+    }
+
+    // 获取总收入
+    public Double getTotalRevenue() {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        List<Order> allOrders = orderRepository.findByTenantId(currentTenantId);
+        return allOrders.stream()
+            .mapToDouble(order -> order.getPrice() * order.getQuantity())
+            .sum();
+    }
+
+    // 获取图表数据（订单趋势）
+    public Map<String, Object> getOrderChartData(String period) {
+        String currentTenantId = TenantContext.getCurrentTenantUuid();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+        
+        LocalDateTime now = LocalDateTime.now();
+        List<Order> orders = orderRepository.findByTenantId(currentTenantId);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        if ("week".equals(period)) {
+            // 生成最近7天的数据
+            List<String> dates = new ArrayList<>();
+            List<Integer> orderCounts = new ArrayList<>();
+            List<Double> revenues = new ArrayList<>();
+            
+            for (int i = 6; i >= 0; i--) {
+                LocalDateTime date = now.minusDays(i);
+                String dateStr = date.toLocalDate().toString();
+                dates.add(date.format(DateTimeFormatter.ofPattern("MM-dd")));
+                
+                List<Order> dayOrders = orders.stream()
+                    .filter(order -> order.getCreatedAt().toLocalDate().equals(date.toLocalDate()))
+                    .collect(Collectors.toList());
+                
+                orderCounts.add(dayOrders.size());
+                revenues.add(dayOrders.stream()
+                    .mapToDouble(order -> order.getPrice() * order.getQuantity())
+                    .sum());
+            }
+            
+            result.put("dates", dates);
+            result.put("orders", orderCounts);
+            result.put("revenue", revenues);
+        } else {
+            // 生成最近30天的数据（每5天一个点）
+            List<String> dates = new ArrayList<>();
+            List<Integer> orderCounts = new ArrayList<>();
+            List<Double> revenues = new ArrayList<>();
+            
+            for (int i = 25; i >= 0; i -= 5) {
+                LocalDateTime endDate = now.minusDays(i);
+                LocalDateTime startDate = endDate.minusDays(4);
+                dates.add(endDate.format(DateTimeFormatter.ofPattern("MM-dd")));
+                
+                List<Order> periodOrders = orders.stream()
+                    .filter(order -> {
+                        LocalDate orderDate = order.getCreatedAt().toLocalDate();
+                        return !orderDate.isBefore(startDate.toLocalDate()) && 
+                               !orderDate.isAfter(endDate.toLocalDate());
+                    })
+                    .collect(Collectors.toList());
+                
+                orderCounts.add(periodOrders.size());
+                revenues.add(periodOrders.stream()
+                    .mapToDouble(order -> order.getPrice() * order.getQuantity())
+                    .sum());
+            }
+            
+            result.put("dates", dates);
+            result.put("orders", orderCounts);
+            result.put("revenue", revenues);
+        }
+        
+        return result;
+    }
+    
+    // 获取收入图表数据
+    public Map<String, Object> getRevenueChartData(String period) {
+        // 复用订单图表数据，只返回收入相关部分
+        return getOrderChartData(period);
     }
 }

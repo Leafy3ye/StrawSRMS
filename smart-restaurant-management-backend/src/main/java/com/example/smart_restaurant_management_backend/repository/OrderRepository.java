@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Integer> {
@@ -31,4 +32,20 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     @Transactional
     @Query("DELETE FROM Order o WHERE o.tenantId = :tenantId")
     void deleteByTenantId(@Param("tenantId") String tenantId);
+
+    // 根据租户ID和时间范围查询订单
+    List<Order> findByTenantIdAndCreatedAtBetween(
+        String tenantId, LocalDateTime startTime, LocalDateTime endTime);
+
+    // 修复：使用时间范围查询今日订单数量
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.createdAt >= :startTime AND o.createdAt < :endTime")
+    Long countTodayOrdersByTenantId(@Param("tenantId") String tenantId, 
+                                   @Param("startTime") LocalDateTime startTime, 
+                                   @Param("endTime") LocalDateTime endTime);
+    
+    // 修复：使用时间范围查询今日营收
+    @Query("SELECT COALESCE(SUM(o.price * o.quantity), 0) FROM Order o WHERE o.tenantId = :tenantId AND o.createdAt >= :startTime AND o.createdAt < :endTime")
+    Double sumTodayRevenueByTenantId(@Param("tenantId") String tenantId, 
+                                    @Param("startTime") LocalDateTime startTime, 
+                                    @Param("endTime") LocalDateTime endTime);
 }

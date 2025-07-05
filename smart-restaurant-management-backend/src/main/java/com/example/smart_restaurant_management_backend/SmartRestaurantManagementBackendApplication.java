@@ -4,16 +4,20 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.TimeZone;
 
 @SpringBootApplication
 public class SmartRestaurantManagementBackendApplication {
-
+    
     // 创建一个日志记录器
     private static final Logger logger = LoggerFactory.getLogger(SmartRestaurantManagementBackendApplication.class);
 
     public static void main(String[] args) {
+        // 设置JVM时区为中国时区
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
+        
         // 记录应用启动日志
-        logger.info("Starting Coffee Management System Backend application...");
+        logger.info("Starting Smart Restaurant Management System Backend application...");
 
         try {
             // 启动 Spring Boot 应用

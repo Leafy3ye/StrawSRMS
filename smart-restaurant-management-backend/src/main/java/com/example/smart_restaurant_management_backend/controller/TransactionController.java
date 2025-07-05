@@ -2,6 +2,7 @@ package com.example.smart_restaurant_management_backend.controller;
 
 import com.example.smart_restaurant_management_backend.model.Transaction;
 import com.example.smart_restaurant_management_backend.service.TransactionService;
+import com.example.smart_restaurant_management_backend.service.OrderService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,9 +15,11 @@ import java.util.HashMap;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final OrderService orderService;
 
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, OrderService orderService) {
         this.transactionService = transactionService;
+        this.orderService = orderService;
     }
 
     @PostMapping
@@ -37,8 +40,11 @@ public class TransactionController {
     @GetMapping("/stats")
     public Map<String, Object> getTodayStats() {
         Map<String, Object> stats = new HashMap<>();
-        stats.put("todayOrderCount", transactionService.countTodayTransactions());
-        stats.put("todayRevenue", transactionService.sumTodayRevenue());
+        // 改为从Orders表获取统计数据
+        stats.put("todayOrderCount", orderService.getTodayOrderCount());
+        stats.put("todayRevenue", orderService.getTodayRevenue());
+        stats.put("totalOrderCount", orderService.getTotalOrderCount());
+        stats.put("totalRevenue", orderService.getTotalRevenue());
         return stats;
     }
 }

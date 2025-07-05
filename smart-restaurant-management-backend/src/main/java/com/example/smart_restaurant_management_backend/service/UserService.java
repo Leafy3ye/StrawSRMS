@@ -256,6 +256,7 @@ public class UserService {
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setRestaurantName(user.getRestaurantName());
         dto.setSetupCompleted(user.getSetupCompleted());
+        dto.setThemeSettings(user.getThemeSettings()); // 添加这一行
         return dto;
     }
 
@@ -414,5 +415,22 @@ public class UserService {
         } catch (Exception e) {
             throw new RuntimeException("重置密码失败：" + e.getMessage());
         }
+    }
+    
+    /**
+     * 更新主题设置
+     * @param tenantId 租户ID
+     * @param themeSettingsJson 主题设置JSON字符串
+     * @return 更新后的用户DTO
+     */
+    public UserDTO updateThemeSettings(String tenantId, String themeSettingsJson) {
+        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setThemeSettings(themeSettingsJson);
+            User savedUser = userRepository.save(user);
+            return convertToDTO(savedUser);
+        }
+        return null;
     }
 }

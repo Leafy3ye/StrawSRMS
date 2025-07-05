@@ -11,6 +11,7 @@ public class UserDTO {
     private String avatarUrl;
     private String restaurantName;
     private Boolean setupCompleted;
+    private String themeSettings; // 新增主题设置字段
 
     // 不包含密码，用于返回给前端
     
@@ -92,5 +93,13 @@ public class UserDTO {
     
     public void setSetupCompleted(Boolean setupCompleted) {
         this.setupCompleted = setupCompleted;
+    }
+    
+    public String getThemeSettings() {
+        return themeSettings;
+    }
+    
+    public void setThemeSettings(String themeSettings) {
+        this.themeSettings = themeSettings;
     }
 }

@@ -23,7 +23,11 @@
           <el-statistic title="平均金额" :value="averageAmount" prefix="¥" :precision="2" />
         </el-col>
         <el-col :span="6">
-          <el-statistic title="时间范围" :value="getTimeRange()" />
+          <!-- 将 ElStatistic 改为普通的文本显示 -->
+          <div class="time-range-display">
+            <div class="time-range-title">时间范围</div>
+            <div class="time-range-value">{{ getTimeRange() }}</div>
+          </div>
         </el-col>
       </el-row>
     </div>
@@ -204,6 +208,24 @@ onMounted(() => {
   padding: 20px;
   background-color: #f8f9fa;
   border-radius: 8px;
+}
+
+/* 新增：时间范围显示样式 */
+.time-range-display {
+  text-align: center;
+}
+
+.time-range-title {
+  font-size: 14px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.time-range-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #303133;
+  line-height: 1;
 }
 
 .pagination-container {

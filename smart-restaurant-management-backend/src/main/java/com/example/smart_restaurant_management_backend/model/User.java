@@ -165,6 +165,10 @@ public class User {
     // 设置完成标志
     @Column(name = "setup_completed")
     private Boolean setupCompleted = false;
+    
+    // 主题设置
+    @Column(name = "theme_settings", columnDefinition = "TEXT")
+    private String themeSettings;
 
     public String getRestaurantName() {
         return restaurantName;
@@ -214,5 +218,14 @@ public class User {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+    
+    // 主题设置的getter和setter
+    public String getThemeSettings() {
+        return themeSettings;
+    }
+
+    public void setThemeSettings(String themeSettings) {
+        this.themeSettings = themeSettings;
     }
 }

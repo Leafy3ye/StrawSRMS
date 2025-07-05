@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -92,5 +93,39 @@ public class OrderController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    // 获取订单时间分析数据
+    @GetMapping("/time-analysis")
+    public ResponseEntity<Map<String, Object>> getOrderTimeAnalysis(
+            @RequestParam(defaultValue = "week") String period) {
+        try {
+            Map<String, Object> result = orderService.getOrderTimeAnalysis(period);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 获取热门菜品统计
+    @GetMapping("/popular-dishes")
+    public ResponseEntity<List<Map<String, Object>>> getPopularDishes(
+            @RequestParam(defaultValue = "5") int limit) {
+        try {
+            List<Map<String, Object>> result = orderService.getPopularDishes(limit);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/chart/week")
+    public Map<String, Object> getWeekChartData() {
+        return orderService.getOrderChartData("week");
+    }
+
+    @GetMapping("/chart/month")
+    public Map<String, Object> getMonthChartData() {
+        return orderService.getOrderChartData("month");
     }
 }

@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper; // 添加这行导入
 
 @RestController
 @RequestMapping("/api/users")
@@ -265,6 +266,31 @@ public class UserController {
             return ResponseEntity.ok("密码重置成功");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("密码重置失败：" + e.getMessage());
+        }
+    }
+
+    // 更新主题设置
+    @PutMapping("/theme-settings")
+    public ResponseEntity<?> updateThemeSettings(@RequestBody Map<String, String> request) {
+        try {
+            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            if (currentTenantId == null) {
+                return ResponseEntity.badRequest().body("未找到当前租户信息");
+            }
+            
+            // 将主题设置转换为JSON字符串
+            ObjectMapper objectMapper = new ObjectMapper();
+            String themeSettingsJson = objectMapper.writeValueAsString(request);
+            
+            UserDTO updatedUser = userService.updateThemeSettings(currentTenantId, themeSettingsJson);
+            
+            if (updatedUser != null) {
+                return ResponseEntity.ok(updatedUser);
+            } else {
+                return ResponseEntity.badRequest().body("更新主题设置失败");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("更新主题设置失败: " + e.getMessage());
         }
     }
 }
