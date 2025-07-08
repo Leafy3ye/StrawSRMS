@@ -23,6 +23,10 @@ public class Dish {
 
     private String description;
 
+    // 添加图片URL字段
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "is_available", columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean isAvailable;
 
@@ -96,6 +100,15 @@ public class Dish {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
+    }
+
+    // 添加图片URL的getter和setter
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     // This method is used for setting both createdAt and updatedAt when an entity is created

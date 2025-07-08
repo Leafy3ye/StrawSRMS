@@ -47,6 +47,39 @@ public class FileController {
         }
     }
     
+    // 添加菜品图片上传接口
+    @PostMapping("/upload/dish")
+    public ResponseEntity<?> uploadDishImage(@RequestParam("file") MultipartFile file) {
+        // 验证文件类型
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body("只能上传图片文件");
+        }
+        
+        try {
+            // 生成唯一文件名
+            String originalFilename = file.getOriginalFilename();
+            String fileName = UUID.randomUUID().toString() + "." + 
+                getFileExtension(originalFilename);
+            
+            // 保存文件到指定目录
+            Path uploadPath = Paths.get("uploads/dishes/");
+            Files.createDirectories(uploadPath);
+            
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            
+            // 返回文件访问URL
+            String fileUrl = "/uploads/dishes/" + fileName;
+            Map<String, String> response = new HashMap<>();
+            response.put("url", fileUrl);
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("文件上传失败");
+        }
+    }
+    
     // 获取文件扩展名的辅助方法
     private String getFileExtension(String fileName) {
         if (fileName == null || fileName.lastIndexOf('.') == -1) {

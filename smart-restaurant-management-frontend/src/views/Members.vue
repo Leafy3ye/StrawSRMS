@@ -77,11 +77,13 @@
             <el-input v-model="newMember.email" placeholder="请输入邮箱" />
           </el-form-item>
           <el-form-item label="会员等级" prop="level">
-            <el-select v-model="newMember.level" placeholder="请选择会员等级">
-              <el-option label="普通会员" value="普通会员" />
-              <el-option label="银卡会员" value="银卡会员" />
-              <el-option label="金卡会员" value="金卡会员" />
-              <el-option label="钻石会员" value="钻石会员" />
+            <el-select v-model="newMember.level" placeholder="请选择会员等级" :loading="memberLevelsLoading">
+              <el-option 
+                v-for="level in memberLevels" 
+                :key="level.id" 
+                :label="level.levelName" 
+                :value="level.levelName" 
+              />
             </el-select>
           </el-form-item>
         </el-form>
@@ -104,11 +106,13 @@
             <el-input v-model="editMemberForm.email" placeholder="请输入邮箱" />
           </el-form-item>
           <el-form-item label="会员等级" prop="level">
-            <el-select v-model="editMemberForm.level" placeholder="请选择会员等级">
-              <el-option label="普通会员" value="普通会员" />
-              <el-option label="银卡会员" value="银卡会员" />
-              <el-option label="金卡会员" value="金卡会员" />
-              <el-option label="钻石会员" value="钻石会员" />
+            <el-select v-model="editMemberForm.level" placeholder="请选择会员等级" :loading="memberLevelsLoading">
+              <el-option 
+                v-for="level in memberLevels" 
+                :key="level.id" 
+                :label="level.levelName" 
+                :value="level.levelName" 
+              />
             </el-select>
           </el-form-item>
         </el-form>
@@ -174,8 +178,10 @@ import { pinyin } from 'pinyin-pro';
 // 响应式数据
 const allMembers = ref([]);
 const members = ref([]);
+const memberLevels = ref([]);
 const searchQuery = ref('');
 const loading = ref(false);
+const memberLevelsLoading = ref(false);
 const submitLoading = ref(false);
 const rechargeLoading = ref(false);
 const showAddDialog = ref(false);
@@ -190,7 +196,7 @@ const newMember = ref({
   name: '',
   phone: '',
   email: '',
-  level: '普通会员'
+  level: ''
 });
 
 const editMemberForm = ref({
@@ -198,7 +204,7 @@ const editMemberForm = ref({
   name: '',
   phone: '',
   email: '',
-  level: '普通会员'
+  level: ''
 });
 
 const rechargeForm = ref({
@@ -288,6 +294,36 @@ watch(searchQuery, () => {
   members.value = filteredMembers.value;
 });
 
+// 加载会员等级列表
+const loadMemberLevels = async () => {
+  try {
+    memberLevelsLoading.value = true;
+    const response = await api.get('/api/member-levels');
+    memberLevels.value = response.data;
+    
+    // 设置默认等级为第一个启用的等级
+    if (memberLevels.value.length > 0) {
+      const defaultLevel = memberLevels.value.find(level => level.isEnabled) || memberLevels.value[0];
+      newMember.value.level = defaultLevel.levelName;
+      editMemberForm.value.level = defaultLevel.levelName;
+    }
+  } catch (error) {
+    console.error('加载会员等级失败:', error);
+    ElMessage.error('加载会员等级失败');
+    // 如果加载失败，使用默认等级作为备选
+    memberLevels.value = [
+      { id: 1, levelName: '普通会员', isEnabled: true },
+      { id: 2, levelName: '银卡会员', isEnabled: true },
+      { id: 3, levelName: '金卡会员', isEnabled: true },
+      { id: 4, levelName: '钻石会员', isEnabled: true }
+    ];
+    newMember.value.level = '普通会员';
+    editMemberForm.value.level = '普通会员';
+  } finally {
+    memberLevelsLoading.value = false;
+  }
+};
+
 // 加载会员列表
 const loadMembers = async () => {
   try {
@@ -303,7 +339,10 @@ const loadMembers = async () => {
   }
 };
 
-// 删除原有的 handleSearch 函数，因为现在使用实时搜索
+// 搜索处理函数
+const handleSearch = () => {
+  members.value = filteredMembers.value;
+};
 
 // 添加会员
 const addMember = async () => {
@@ -316,15 +355,17 @@ const addMember = async () => {
     submitLoading.value = true;
     const response = await api.post('/api/members', newMember.value);
     
-    members.value.push(response.data);
+    allMembers.value.push(response.data);
+    members.value = filteredMembers.value; // 重新应用过滤
     showAddDialog.value = false;
     
     // 重置表单
+    const defaultLevel = memberLevels.value.find(level => level.isEnabled) || memberLevels.value[0];
     newMember.value = {
       name: '',
       phone: '',
       email: '',
-      level: '普通会员'
+      level: defaultLevel?.levelName || ''
     };
     memberFormRef.value.resetFields();
     
@@ -359,10 +400,11 @@ const updateMember = async () => {
     const response = await api.put(`/api/members/${editMemberForm.value.id}`, editMemberForm.value);
     
     // 更新本地数据
-    const index = members.value.findIndex(m => m.id === editMemberForm.value.id);
+    const index = allMembers.value.findIndex(m => m.id === editMemberForm.value.id);
     if (index !== -1) {
-      members.value[index] = response.data;
+      allMembers.value[index] = response.data;
     }
+    members.value = filteredMembers.value; // 重新应用过滤
     
     showEditDialog.value = false;
     ElMessage.success('会员信息更新成功');
@@ -388,7 +430,8 @@ const deleteMember = async (id) => {
     });
     
     await api.delete(`/api/members/${id}`);
-    members.value = members.value.filter(member => member.id !== id);
+    allMembers.value = allMembers.value.filter(member => member.id !== id);
+    members.value = filteredMembers.value; // 重新应用过滤
     ElMessage.success('删除成功');
   } catch (error) {
     if (error === 'cancel') {
@@ -438,10 +481,11 @@ const handleRecharge = async () => {
     await api.post('/api/members/recharge', rechargeData);
     
     // 更新会员余额
-    const memberIndex = members.value.findIndex(m => m.id === currentMember.value.id);
+    const memberIndex = allMembers.value.findIndex(m => m.id === currentMember.value.id);
     if (memberIndex !== -1) {
-      members.value[memberIndex].balance += amount;
+      allMembers.value[memberIndex].balance += amount;
     }
+    members.value = filteredMembers.value; // 重新应用过滤
     
     ElMessage.success(`充值成功！充值金额：¥${amount.toFixed(2)}`);
     showRechargeDialogVisible.value = false;
@@ -464,8 +508,9 @@ const formatTime = (timeStr) => {
 };
 
 // 组件挂载时加载数据
-onMounted(() => {
-  loadMembers();
+onMounted(async () => {
+  await loadMemberLevels(); // 先加载会员等级
+  await loadMembers(); // 再加载会员列表
 });
 </script>
 

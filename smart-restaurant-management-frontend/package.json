@@ -1,7 +1,7 @@
 {
-  "name": "coffee-management-system-frontend",
+  "name": "StrawSRMS",
   "private": true,
-  "version": "1.1.0",
+  "version": "0.0.3",
   "type": "commonjs",
   "scripts": {
     "dev": "vite",

@@ -18,14 +18,37 @@ const routes = [
       
       // 系统设置路由
       { 
+        path: 'push-service', 
+        name: 'PushService',
+        children: [
+          { 
+            path: 'email-settings', 
+            name: 'PushEmailSettings', 
+            component: () => import('../views/push-service/EmailSettings.vue') 
+          },
+          { 
+            path: 'sms-settings', 
+            name: 'SmsSettings', 
+            component: () => import('../views/push-service/SmsSettings.vue') 
+          },
+          { 
+            path: 'email-templates', 
+            name: 'EmailTemplates', 
+            component: () => import('../views/push-service/EmailTemplates.vue') 
+          },
+          { 
+            path: 'sms-templates', 
+            name: 'SmsTemplates', 
+            component: () => import('../views/push-service/SmsTemplates.vue') 
+          }
+        ]
+      },
+      
+      // 系统设置路由（移除邮箱设置）
+      { 
         path: 'settings', 
         name: 'Settings',
         children: [
-          { 
-            path: 'email', 
-            name: 'EmailSettings', 
-            component: () => import('../views/settings/EmailSettings.vue') 
-          },
           { 
             path: 'shop', 
             name: 'ShopSettings', 

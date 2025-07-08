@@ -8,7 +8,7 @@
       borderBottomColor: currentNavbarTheme.border || '#434a5a'
     }">
       <img :src="logoUrl" alt="logo" class="logo-img" />
-      <span class="logo-title" :style="{ color: currentNavbarTheme.text }">{{ userStore.shopName || '智慧餐饮解决方案' }}</span>
+      <span class="logo-title" :style="{ color: currentNavbarTheme.text }">{{ userStore.shopName || 'StrawSRMS' }}</span>
     </div>
     
     <!-- 导航菜单 -->
@@ -45,7 +45,31 @@
           <span>会员</span>
         </el-menu-item>
         <el-menu-item index="/member-policy" @click="checkAuth('/member-policy')">
-          <span>会员政策</span>
+          <span>会员等级管理</span>
+        </el-menu-item>
+      </el-sub-menu>
+
+      <!-- 推送服务下拉菜单 -->
+      <el-sub-menu index="/push-service">
+        <template #title>
+          <el-icon><Bell /></el-icon>
+          <span>推送服务</span>
+        </template>
+        <el-menu-item index="/push-service/email-settings" @click="checkAuth('/push-service/email-settings')">
+          <el-icon><Message /></el-icon>
+          <span>邮箱设置</span>
+        </el-menu-item>
+        <el-menu-item index="/push-service/sms-settings" @click="checkAuth('/push-service/sms-settings')">
+          <el-icon><ChatDotRound /></el-icon>
+          <span>短信设置</span>
+        </el-menu-item>
+        <el-menu-item index="/push-service/email-templates" @click="checkAuth('/push-service/email-templates')">
+          <el-icon><Document /></el-icon>
+          <span>邮箱模板</span>
+        </el-menu-item>
+        <el-menu-item index="/push-service/sms-templates" @click="checkAuth('/push-service/sms-templates')">
+          <el-icon><EditPen /></el-icon>
+          <span>短信模板</span>
         </el-menu-item>
       </el-sub-menu>
 
@@ -55,10 +79,6 @@
           <el-icon><Tools /></el-icon>
           <span>系统设置</span>
         </template>
-        <el-menu-item index="/settings/email" @click="checkAuth('/settings/email')">
-          <el-icon><Message /></el-icon>
-          <span>邮箱设置</span>
-        </el-menu-item>
         <el-menu-item index="/settings/shop" @click="checkAuth('/settings/shop')">
           <el-icon><Shop /></el-icon>
           <span>店铺设置</span>
@@ -124,7 +144,7 @@ import { useRouter } from "vue-router";
 import { useUserStore } from '../store/user';
 import { 
   House, Document, Edit, User, SwitchButton, Setting, ArrowDown,
-  Tools, Message, Shop, Brush
+  Tools, Message, Shop, Brush, Bell, ChatDotRound, EditPen
 } from "@element-plus/icons-vue";
 // 导入logo图片
 import logoUrl from '../assets/logo.jpg';
@@ -251,8 +271,8 @@ const handleCommand = (command) => {
 }
 
 .logo-img {
-  width: 32px;
-  height: 32px;
+  width: 50px;
+  height: 50px;
   margin-right: 12px;
   border-radius: 4px;
 }

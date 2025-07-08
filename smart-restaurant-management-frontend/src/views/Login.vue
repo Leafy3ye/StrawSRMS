@@ -7,7 +7,8 @@
       </div>
 
       <!-- 标题 -->
-      <h2 class="login-title">智慧餐饮综合管理系统</h2>
+      <h2 class="login-title">StrawSRMS</h2>
+      <p class="login-subtitle">智慧餐饮综合管理系统</p>
 
       <!-- 登录表单 -->
       <el-form :model="form" label-width="0" ref="loginForm" class="login-form" :rules="rules">
@@ -149,13 +150,14 @@ const goToForgotPassword = () => {
 /* Logo 容器 */
 .logo-container {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 5px;
+  margin-top: 20px;
 }
 
 /* Logo 图片 */
 .logo-image {
-  width: 80px;
-  height: 80px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -165,7 +167,16 @@ const goToForgotPassword = () => {
   text-align: center;
   font-size: 24px;
   color: #303133;
+  margin-bottom: 10px;
+}
+
+/* 副标题样式 */
+.login-subtitle {
+  text-align: center;
+  font-size: 14px;
+  color: #909399;
   margin-bottom: 30px;
+  margin-top: 0;
 }
 
 /* 登录表单 */

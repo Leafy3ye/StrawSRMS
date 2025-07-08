@@ -74,7 +74,7 @@
           <el-card class="chart-card" shadow="hover">
             <template #header>
               <div class="chart-header">
-                <h3>订单时间分析</h3>
+                <h3>订单时间段分布</h3>
                 <el-radio-group v-model="timeAnalysisPeriod" @change="updateTimeAnalysisChart" size="small">
                   <el-radio-button label="week">周视图</el-radio-button>
                   <el-radio-button label="month">月视图</el-radio-button>
