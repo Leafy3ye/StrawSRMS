@@ -2,9 +2,10 @@ import axios from 'axios'
 
 function getApiBaseUrl() {
   if (process.env.NODE_ENV === 'production') {
-    // 改为阿里云服务器公网IP
-    return 'http://47.99.156.121:8080/';
+    // ✅ 走 Nginx 反向代理，避免 HTTPS 跨域问题
+    return '/api/';
   } else {
+    // 本地开发依然使用后端直连地址
     return 'http://localhost:8080/';
   }
 }
@@ -17,68 +18,47 @@ const api = axios.create({
   }
 })
 
-// 请求拦截器
+// 请求拦截器 - 添加 JWT Token
 api.interceptors.request.use(
   (config) => {
-    // 从 localStorage 获取 JWT Token
-    const token = localStorage.getItem('token');
-    
+    const token = localStorage.getItem('token')
     if (token) {
-      // 设置 Authorization 头而不是 X-Tenant-ID
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`
     }
-    
-    return config;
+    return config
   },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+  (error) => Promise.reject(error)
+)
 
-// 响应拦截器
-api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token 过期或无效，清除本地存储并跳转到登录页
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// 请求拦截器 - 自动添加租户ID到请求头
+// 请求拦截器 - 添加租户 ID
 api.interceptors.request.use(
-  config => {
-    // 从localStorage获取用户信息
-    const userStr = localStorage.getItem('user');
+  (config) => {
+    const userStr = localStorage.getItem('user')
     if (userStr && userStr !== 'undefined' && userStr !== 'null') {
       try {
-        const user = JSON.parse(userStr);
-        if (user && user.tenantId) {
-          config.headers['X-Tenant-ID'] = user.tenantId;
+        const user = JSON.parse(userStr)
+        if (user?.tenantId) {
+          config.headers['X-Tenant-ID'] = user.tenantId
         }
       } catch (error) {
-        console.error('解析用户信息失败:', error);
-        // 清除损坏的数据
-        localStorage.removeItem('user');
+        console.error('解析用户信息失败:', error)
+        localStorage.removeItem('user')
       }
     }
-    return config;
+    return config
   },
-  error => {
-    return Promise.reject(error);
-  }
-);
+  (error) => Promise.reject(error)
+)
 
-// 响应拦截器
+// 响应拦截器 - 处理 401 登录失效
 api.interceptors.response.use(
-  response => response,
-  error => {
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      window.location.href = '/login'
+    }
     console.error('API请求错误:', error)
     return Promise.reject(error)
   }

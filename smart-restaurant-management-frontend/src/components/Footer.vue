@@ -1,7 +1,7 @@
 <!-- 底部组件 -->
 <template>
     <el-footer class="footer-bar">
-      © TsukiLullaby版权所有-智慧餐饮综合管理系统
+      © 智慧餐饮综合管理系统
     </el-footer>
   </template>
   
