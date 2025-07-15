@@ -4,9 +4,35 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public class DeductRequestDTO {
+    // 会员ID - 保持Long类型（已经是正确的）
     private Long memberId;
+    
+    // 扣款金额
     private BigDecimal amount;
+    
+    // 租户ID - 新增，改为Long类型
+    private Long tenantId;
+    
+    // 店铺ID - 新增，用于店铺级别隔离
+    private Long storeId;
 
+    // 邮件内容相关字段
+    private String tableName;  // 桌位名称
+    private List<String> consumeItems;  // 消费项目列表
+    private Integer totalItems;  // 消费项目总数
+    
+    // 默认构造函数
+    public DeductRequestDTO() {}
+    
+    // 带参构造函数
+    public DeductRequestDTO(Long memberId, BigDecimal amount, Long tenantId, Long storeId) {
+        this.memberId = memberId;
+        this.amount = amount;
+        this.tenantId = tenantId;
+        this.storeId = storeId;
+    }
+
+    // Getters and Setters
     public Long getMemberId() {
         return memberId;
     }
@@ -23,12 +49,22 @@ public class DeductRequestDTO {
         this.amount = amount;
     }
     
-    // 新增字段用于邮件内容
-    private String tableName;  // 桌位名称
-    private List<String> consumeItems;  // 消费项目列表
-    private Integer totalItems;  // 消费项目总数
+    public Long getTenantId() {
+        return tenantId;
+    }
     
-    // Getters and Setters
+    public void setTenantId(Long tenantId) {
+        this.tenantId = tenantId;
+    }
+    
+    public Long getStoreId() {
+        return storeId;
+    }
+    
+    public void setStoreId(Long storeId) {
+        this.storeId = storeId;
+    }
+    
     public String getTableName() {
         return tableName;
     }

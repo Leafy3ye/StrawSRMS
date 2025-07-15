@@ -1,11 +1,13 @@
 package com.example.smart_restaurant_management_backend.controller;
 
 import com.example.smart_restaurant_management_backend.model.TableEntity;
+import com.example.smart_restaurant_management_backend.dto.TableDTO;
 import com.example.smart_restaurant_management_backend.service.TableService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.http.ResponseEntity;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/tables")
@@ -19,58 +21,61 @@ public class TableController {
     }
 
     @GetMapping
-    public List<TableEntity> getAllTables() {
-        return tableService.findAll();
+    public List<TableDTO> getAllTables() {
+        List<TableEntity> tables = tableService.findAll();
+        return tables.stream()
+                .map(TableDTO::new)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TableEntity> getTableById(@PathVariable Integer id) {
-        return tableService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping
-    public ResponseEntity<String> createTable(@RequestBody TableEntity tableEntity) {
-        try {
-            // 使用原生SQL插入，确保数据正确保存
-            tableService.saveWithSql(tableEntity.getName(), tableEntity.getStatus());
-            return ResponseEntity.ok("桌位创建成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("桌位创建失败: " + e.getMessage());
+    public ResponseEntity<TableDTO> getTableById(@PathVariable Long id) {
+        Optional<TableEntity> table = tableService.findById(id);
+        if (table.isPresent()) {
+            return ResponseEntity.ok(new TableDTO(table.get()));
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
 
+    @PostMapping
+    public TableDTO createTable(@RequestBody TableEntity table) {
+        TableEntity savedTable = tableService.save(table);
+        return new TableDTO(savedTable);
+    }
+
     @PutMapping("/{id}")
-    public ResponseEntity<String> updateTable(@PathVariable Integer id, @RequestBody TableEntity tableEntity) {
-        try {
-            // 先检查桌位是否存在 - 使用 !isPresent() 替代 isEmpty()
-            if (!tableService.findById(id).isPresent()) {
-                return ResponseEntity.notFound().build();
-            }
-            // 使用原生SQL更新
-            tableService.updateWithSql(id, tableEntity.getName(), tableEntity.getStatus());
-            return ResponseEntity.ok("桌位更新成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("桌位更新失败: " + e.getMessage());
+    public ResponseEntity<TableDTO> updateTable(@PathVariable Long id, @RequestBody TableEntity tableDetails) {
+        Optional<TableEntity> optionalTable = tableService.findById(id);
+        if (optionalTable.isPresent()) {
+            TableEntity table = optionalTable.get();
+            table.setName(tableDetails.getName());
+            table.setStatus(tableDetails.getStatus());
+            TableEntity updatedTable = tableService.save(table);
+            return ResponseEntity.ok(new TableDTO(updatedTable));
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteTable(@PathVariable Integer id) {
-        try {
-            // 使用原生SQL删除
-            tableService.deleteByIdWithSql(id);
-            return ResponseEntity.ok("桌位删除成功");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("桌位删除失败: " + e.getMessage());
+    public ResponseEntity<?> deleteTable(@PathVariable Long id) {
+        Optional<TableEntity> table = tableService.findById(id);
+        if (table.isPresent()) {
+            tableService.deleteById(id);
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
         }
     }
 
-    // 新增接口：获取某桌位未完成订单总金额
-    @GetMapping("/{id}/total")
-    public ResponseEntity<Double> getTableTotalAmount(@PathVariable Integer id) {
-        Double totalAmount = tableService.getUncompletedOrderTotalAmountByTableId(id);
-        return ResponseEntity.ok(totalAmount);
+    @GetMapping("/revenue/{id}")
+    public ResponseEntity<Double> getTableRevenue(@PathVariable Long id) {
+        try {
+            double revenue = tableService.calculateTableRevenue(id);
+            return ResponseEntity.ok(revenue);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

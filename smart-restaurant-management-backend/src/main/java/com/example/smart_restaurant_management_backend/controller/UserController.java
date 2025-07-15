@@ -39,9 +39,12 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
         UserDTO user = userService.login(loginRequest);
         if (user != null) {
-            // 生成JWT token - 需要提供username, tenantId, 和roles
+            // 生成JWT token - 使用UUID作为subject而不是username
             List<String> roles = Arrays.asList("USER"); // 或者根据用户类型设置角色
-            String token = jwtUtil.generateToken(user.getUsername(), user.getTenantId(), roles);
+            // 修复：处理tenantId为null的情况
+            String tenantIdStr = user.getTenantId() != null ? user.getTenantId().toString() : "0";
+            // 关键修改：使用UUID而不是username作为JWT的subject
+            String token = jwtUtil.generateToken(user.getUuid(), tenantIdStr, roles);
             
             // 构建包含token和user的响应
             Map<String, Object> response = new HashMap<>();
@@ -134,12 +137,12 @@ public class UserController {
     @PostMapping("/shop-setup")
     public ResponseEntity<?> setupShop(@RequestBody ShopSetupDTO shopSetupDTO) {
         try {
-            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            Long currentTenantId = TenantContext.getCurrentTenantId();  // 修复：使用getCurrentTenantId()替代getCurrentTenantUuid()
             if (currentTenantId == null) {
                 return ResponseEntity.badRequest().body("未找到当前租户信息");
             }
             
-            UserDTO updatedUser = userService.setupShop(currentTenantId, shopSetupDTO);
+            UserDTO updatedUser = userService.setupShop(currentTenantId.toString(), shopSetupDTO);  // 转换为String
             if (updatedUser != null) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("user", updatedUser);
@@ -157,13 +160,13 @@ public class UserController {
     @PutMapping("/shop-info")
     public ResponseEntity<?> updateShopInfo(@RequestBody Map<String, String> request) {
         try {
-            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            Long currentTenantId = TenantContext.getCurrentTenantId();  // 修复：使用getCurrentTenantId()替代getCurrentTenantUuid()
             if (currentTenantId == null) {
                 return ResponseEntity.badRequest().body("未找到当前租户信息");
             }
             
             String shopName = request.get("shopName");
-            UserDTO updatedUser = userService.updateShopName(currentTenantId, shopName);
+            UserDTO updatedUser = userService.updateShopName(currentTenantId.toString(), shopName);  // 转换为String
             if (updatedUser != null) {
                 return ResponseEntity.ok(updatedUser);
             } else {
@@ -274,12 +277,12 @@ public class UserController {
     @GetMapping("/theme-settings")
     public ResponseEntity<?> getThemeSettings() {
         try {
-            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            Long currentTenantId = TenantContext.getCurrentTenantId();  // 修复：使用getCurrentTenantId()替代getCurrentTenantUuid()
             if (currentTenantId == null) {
                 return ResponseEntity.badRequest().body("未找到当前租户信息");
             }
             
-            UserDTO user = userService.getUserByTenantId(currentTenantId);
+            UserDTO user = userService.getUserByTenantId(currentTenantId.toString());  // 转换为String
             if (user != null) {
                 // 返回主题设置，如果为空则返回空对象
                 String themeSettings = user.getThemeSettings();
@@ -303,7 +306,7 @@ public class UserController {
     @PutMapping("/theme-settings")
     public ResponseEntity<?> updateThemeSettings(@RequestBody Map<String, String> request) {
         try {
-            String currentTenantId = TenantContext.getCurrentTenantUuid();
+            Long currentTenantId = TenantContext.getCurrentTenantId();  // 修复：使用getCurrentTenantId()替代getCurrentTenantUuid()
             if (currentTenantId == null) {
                 return ResponseEntity.badRequest().body("未找到当前租户信息");
             }
@@ -312,7 +315,7 @@ public class UserController {
             ObjectMapper objectMapper = new ObjectMapper();
             String themeSettingsJson = objectMapper.writeValueAsString(request);
             
-            UserDTO updatedUser = userService.updateThemeSettings(currentTenantId, themeSettingsJson);
+            UserDTO updatedUser = userService.updateThemeSettings(currentTenantId.toString(), themeSettingsJson);  // 转换为String
             
             if (updatedUser != null) {
                 return ResponseEntity.ok(updatedUser);

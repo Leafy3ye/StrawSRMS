@@ -12,26 +12,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface MemberRepository extends JpaRepository<Member, Long> {
-    // 根据租户ID查询会员
-    List<Member> findByTenantId(String tenantId);
-    
-    // 根据租户ID和会员ID查询
-    Optional<Member> findByIdAndTenantId(Long id, String tenantId);
-    
-    // 根据租户ID和姓名模糊查询
-    List<Member> findByTenantIdAndNameContaining(String tenantId, String keyword);
-    
-    // 根据租户ID和手机号查询
-    Optional<Member> findByTenantIdAndPhone(String tenantId, String phone);
-    
-    // 根据租户ID和邮箱查询
-    Optional<Member> findByTenantIdAndEmail(String tenantId, String email);
-    
-    // 兼容旧方法
-    List<Member> findByNameContaining(String keyword);
+    // 更新：使用Long类型的tenantId和storeId
+    List<Member> findByTenantIdAndStoreId(Long tenantId, Long storeId);
+    Optional<Member> findByIdAndTenantIdAndStoreId(Long id, Long tenantId, Long storeId);
+    List<Member> findByTenantIdAndStoreIdAndNameContaining(Long tenantId, Long storeId, String keyword);
+    Optional<Member> findByTenantIdAndStoreIdAndPhone(Long tenantId, Long storeId, String phone);
+    Optional<Member> findByTenantIdAndStoreIdAndEmail(Long tenantId, Long storeId, String email);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM Member m WHERE m.tenantId = :tenantId")
-    void deleteByTenantId(@Param("tenantId") String tenantId);
+    void deleteByTenantId(@Param("tenantId") Long tenantId);
+    
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Member m WHERE m.storeId = :storeId")
+    void deleteByStoreId(@Param("storeId") Long storeId);
 }

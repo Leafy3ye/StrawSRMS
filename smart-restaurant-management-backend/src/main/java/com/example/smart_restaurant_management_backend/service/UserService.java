@@ -13,19 +13,24 @@ import com.example.smart_restaurant_management_backend.repository.OrderRepositor
 import com.example.smart_restaurant_management_backend.repository.TransactionRepository;
 import com.example.smart_restaurant_management_backend.repository.DishRepository;
 import com.example.smart_restaurant_management_backend.repository.MemberRepository;
-
+import com.example.smart_restaurant_management_backend.repository.StoreRepository;
+import com.example.smart_restaurant_management_backend.repository.TenantRepository;
+// 添加以下两行缺失的导入
+import com.example.smart_restaurant_management_backend.model.Tenant;
+import com.example.smart_restaurant_management_backend.model.Store;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import javax.annotation.PostConstruct;
 import java.util.Optional;
 import java.util.UUID;
 import com.example.smart_restaurant_management_backend.dto.RestaurantSetupRequest;
-import com.example.smart_restaurant_management_backend.model.UserType;
+import com.example.smart_restaurant_management_backend.enums.UserType;
 import com.example.smart_restaurant_management_backend.dto.OrderDetailDTO;
 import com.example.smart_restaurant_management_backend.model.Order;
+import com.example.smart_restaurant_management_backend.model.Tenant.TenantStatus;
+import com.example.smart_restaurant_management_backend.model.Store.StoreStatus;
 
 @Service
 public class UserService {
@@ -60,6 +65,12 @@ public class UserService {
     @Autowired
     private MemberRepository memberRepository;
 
+    @Autowired
+    private TenantRepository tenantRepository;
+
+    @Autowired
+    private StoreRepository storeRepository;
+
     // 删除账户和所有相关数据
     @Transactional
     public boolean deleteAccount(String tenantId, DeleteAccountDTO deleteAccountDTO) {
@@ -69,7 +80,7 @@ public class UserService {
         }
         
         // 获取用户信息
-        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        Optional<User> userOpt = userRepository.findFirstByTenantId(Long.parseLong(tenantId));
         if (!userOpt.isPresent()) {
             throw new RuntimeException("用户不存在");
         }
@@ -83,21 +94,22 @@ public class UserService {
         
         try {
             // 按照外键依赖顺序删除数据
+            Long tenantIdLong = Long.parseLong(tenantId);
             
             // 1. 删除订单（依赖桌位和菜品）
-            orderRepository.deleteByTenantId(tenantId);
+            orderRepository.deleteByTenantId(tenantIdLong);
             
             // 2. 删除交易记录
-            transactionRepository.deleteByTenantId(tenantId);
+            transactionRepository.deleteByTenantId(tenantIdLong);
             
             // 3. 删除桌位
-            tableRepository.deleteByTenantId(tenantId);
+            tableRepository.deleteByTenantId(tenantIdLong);
             
             // 4. 删除菜品
-            dishRepository.deleteByTenantId(tenantId);
+            dishRepository.deleteByTenantId(tenantIdLong);
             
             // 5. 删除会员
-            memberRepository.deleteByTenantId(tenantId);
+            memberRepository.deleteByTenantId(tenantIdLong);
             
             // 6. 最后删除用户
             userRepository.delete(user);
@@ -111,16 +123,49 @@ public class UserService {
     // 初始化管理员账户
     @PostConstruct
     public void init() {
-        if (!userRepository.existsByUsername("admin")) {
+        // 检查是否已存在admin用户
+        Optional<User> existingAdmin = userRepository.findByUsername("admin");
+        if (!existingAdmin.isPresent()) {  // 修改：使用 !isPresent() 替代 isEmpty()
+            // 创建系统租户
+            Tenant systemTenant = new Tenant();
+            systemTenant.setTenantName("系统租户");
+            systemTenant.setEmail("system@restaurant.com");
+            systemTenant.setPhone("000-0000-0000");
+            systemTenant.setStatus(TenantStatus.ACTIVE);
+            systemTenant.setSubscriptionPlan("SYSTEM");
+            systemTenant = tenantRepository.save(systemTenant);
+            
+            // 检查是否已存在系统默认店铺
+            Optional<Store> existingStore = storeRepository.findByTenant_IdAndIsDefaultTrue(systemTenant.getId());
+            Store systemStore;
+            if (!existingStore.isPresent()) {  // 修改：使用 !isPresent() 替代 isEmpty()
+                // 创建系统默认店铺
+                systemStore = new Store();
+                systemStore.setStoreName("系统默认店铺");
+                systemStore.setTenant(systemTenant);
+                systemStore.setStoreAddress("系统默认地址");
+                systemStore.setStorePhone("000-0000-0000");
+                systemStore.setStatus(StoreStatus.ACTIVE);
+                systemStore.setIsDefault(true);
+                systemStore = storeRepository.save(systemStore);
+            } else {
+                systemStore = existingStore.get();
+            }
+            
+            // 创建admin用户
+            // 创建admin用户
             User admin = new User();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode("admin"));
-            admin.setEmail("398670671@xx.com");
-            admin.setPhone("13800000000");
-            admin.setUserType(UserType.SUPER_ADMIN);  // ✅ 设置为超级管理员
-            admin.setEmailVerified(true);             // ✅ 设置邮箱已验证
-            // UUID会在@PrePersist中自动生成
+            admin.setEmail("398670671@qq.com");
+            admin.setPhone("000-0000-0000"); // 添加这一行
+            admin.setUserType(UserType.SUPER_ADMIN);
+            // 超级管理员不绑定任何租户和店铺
+            admin.setTenantId(null);
+            admin.setStoreId(null);
             userRepository.save(admin);
+            
+            System.out.println("Admin user created with username: admin, password: admin");
         }
     }
 
@@ -191,28 +236,52 @@ public class UserService {
     }
 
     // 用户注册
+    // 用户注册
+    @Transactional
     public UserDTO register(RegisterRequestDTO registerRequest) {
         // 验证图形验证码
         if (!captchaService.verifyCaptcha(registerRequest.getCaptchaKey(), registerRequest.getCaptcha())) {
             throw new RuntimeException("图形验证码错误");
         }
-
+    
         // 验证邮件验证码
         if (!emailService.verifyEmailCode(registerRequest.getEmail(), registerRequest.getEmailCode())) {
             throw new RuntimeException("邮件验证码错误或已过期");
         }
-
+    
         // 验证用户名、邮箱等是否已存在
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
             throw new RuntimeException("用户名已存在");
         }
         
+        // 创建租户
+        Tenant tenant = new Tenant();
+        tenant.setTenantName(registerRequest.getUsername() + "的餐厅");
+        tenant.setEmail(registerRequest.getEmail());
+        tenant.setPhone(registerRequest.getPhone());
+        tenant.setStatus(TenantStatus.ACTIVE);
+        tenant.setSubscriptionPlan("BASIC");
+        Tenant savedTenant = tenantRepository.save(tenant);
+        
+        // 创建默认店铺
+        Store defaultStore = new Store();
+        defaultStore.setStoreName("默认店铺");
+        defaultStore.setTenant(savedTenant);
+        defaultStore.setStoreAddress("待设置");
+        defaultStore.setStorePhone(registerRequest.getPhone());
+        defaultStore.setStatus(StoreStatus.ACTIVE);
+        defaultStore.setIsDefault(true);
+        Store savedStore = storeRepository.save(defaultStore);
+        
+        // 创建用户并关联租户和店铺
         User user = new User();
         user.setUsername(registerRequest.getUsername());
         user.setEmail(registerRequest.getEmail());
         user.setPhone(registerRequest.getPhone());
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setUserType(UserType.TENANT);
+        user.setTenantId(savedTenant.getId());
+        user.setStoreId(savedStore.getId());
         user.setSetupCompleted(false);
         // uuid会在@PrePersist中自动生成
         
@@ -243,11 +312,11 @@ public class UserService {
         return phone != null && phone.matches("^1[3-9]\\d{9}$");
     }
 
-    // 保留这个完整的convertToDTO方法
     private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setTenantId(user.getTenantId());
+        dto.setStoreId(user.getStoreId());
         dto.setUuid(user.getUuid());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
@@ -256,7 +325,8 @@ public class UserService {
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setRestaurantName(user.getRestaurantName());
         dto.setSetupCompleted(user.getSetupCompleted());
-        dto.setThemeSettings(user.getThemeSettings()); // 添加这一行
+        dto.setThemeSettings(user.getThemeSettings());
+        dto.setUserType(user.getUserType().name());
         return dto;
     }
 
@@ -268,7 +338,7 @@ public class UserService {
 
     // 店铺初始化设置
     public UserDTO setupShop(String tenantId, ShopSetupDTO shopSetupDTO) {
-        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        Optional<User> userOpt = userRepository.findFirstByTenantId(Long.parseLong(tenantId));
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             
@@ -291,7 +361,8 @@ public class UserService {
     
     // 更新店铺名称
     public UserDTO updateShopName(String tenantId, String shopName) {
-        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        // 修复第272行：使用 findFirstByTenantId
+        Optional<User> userOpt = userRepository.findFirstByTenantId(Long.parseLong(tenantId));
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             user.setRestaurantName(shopName);
@@ -424,7 +495,8 @@ public class UserService {
      * @return 更新后的用户DTO
      */
     public UserDTO updateThemeSettings(String tenantId, String themeSettingsJson) {
-        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        // 修复第428行：使用 findFirstByTenantId
+        Optional<User> userOpt = userRepository.findFirstByTenantId(Long.parseLong(tenantId));
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             user.setThemeSettings(themeSettingsJson);
@@ -440,7 +512,7 @@ public class UserService {
      * @return 用户DTO
      */
     public UserDTO getUserByTenantId(String tenantId) {
-        Optional<User> userOpt = userRepository.findByTenantId(tenantId);
+        Optional<User> userOpt = userRepository.findFirstByTenantId(Long.parseLong(tenantId));
         return userOpt.map(this::convertToDTO).orElse(null);
     }
 }

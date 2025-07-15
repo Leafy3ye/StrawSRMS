@@ -30,7 +30,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// 请求拦截器 - 添加租户 ID
+// 请求拦截器 - 添加租户 ID 和店铺 ID
 api.interceptors.request.use(
   (config) => {
     const userStr = localStorage.getItem('user')
@@ -40,6 +40,14 @@ api.interceptors.request.use(
         if (user?.tenantId) {
           config.headers['X-Tenant-ID'] = user.tenantId
         }
+        // 添加店铺ID请求头
+        if (user?.storeId) {
+          config.headers['X-Store-Id'] = user.storeId
+        }
+        console.log('请求头设置:', {
+          'X-Tenant-ID': user?.tenantId,
+          'X-Store-Id': user?.storeId
+        });
       } catch (error) {
         console.error('解析用户信息失败:', error)
         localStorage.removeItem('user')

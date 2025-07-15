@@ -1,6 +1,7 @@
 package com.example.smart_restaurant_management_backend.model;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,15 +12,19 @@ public class Dish {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 添加租户ID字段
+    // 修改：将租户ID字段改为Long类型
     @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
+    private Long tenantId;
+    
+    // 新增：添加门店ID字段
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private Double price;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;
 
     private String description;
 
@@ -53,11 +58,11 @@ public class Dish {
         this.name = name;
     }
 
-    public Double getPrice() {
+    public BigDecimal getPrice() {
         return price;
     }
 
-    public void setPrice(Double price) {
+    public void setPrice(BigDecimal price) {
         this.price = price;
     }
 
@@ -93,13 +98,22 @@ public class Dish {
         this.updatedAt = updatedAt;
     }
 
-    // 添加租户ID的getter和setter
-    public String getTenantId() {
+    // 修改：租户ID的getter和setter改为Long类型
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(String tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
+    }
+    
+    // 新增：门店ID的getter和setter
+    public Long getStoreId() {
+        return storeId;
+    }
+
+    public void setStoreId(Long storeId) {
+        this.storeId = storeId;
     }
 
     // 添加图片URL的getter和setter

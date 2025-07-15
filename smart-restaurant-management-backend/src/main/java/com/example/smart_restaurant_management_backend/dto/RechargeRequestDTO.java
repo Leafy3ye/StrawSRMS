@@ -8,6 +8,8 @@ public class RechargeRequestDTO {
     private BigDecimal amount;
     private String paymentMethod;
     private String remark;
+    private Long tenantId;
+    private Long storeId;
     
     // Getters and setters
     public Long getMemberId() {
@@ -40,5 +42,21 @@ public class RechargeRequestDTO {
     
     public void setRemark(String remark) {
         this.remark = remark;
+    }
+    
+    public Long getTenantId() {
+        return tenantId;
+    }
+    
+    public void setTenantId(Long tenantId) {
+        this.tenantId = tenantId;
+    }
+    
+    public Long getStoreId() {
+        return storeId;
+    }
+    
+    public void setStoreId(Long storeId) {
+        this.storeId = storeId;
     }
 }

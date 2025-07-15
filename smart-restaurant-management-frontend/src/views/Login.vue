@@ -106,11 +106,23 @@ const onLogin = () => {
     if (valid) {
       loading.value = true;
       try {
-        await userStore.login(form);
-        ElMessage.success("登录成功！");
-        router.push("/"); // 跳转到主页面
+        const result = await userStore.login({
+          username: form.username,  // 修复：使用正确的变量
+          password: form.password   // 修复：使用正确的变量
+        });
+        
+        if (result.success) {
+          ElMessage.success('登录成功');
+          
+          // 根据用户类型重定向
+          if (result.isSuperAdmin) {
+            router.push('/super-admin');
+          } else {
+            router.push('/');
+          }
+        }
       } catch (error) {
-        ElMessage.error(error.message || "用户名或密码错误！");
+        ElMessage.error(error.message || '登录失败');
       } finally {
         loading.value = false;
       }

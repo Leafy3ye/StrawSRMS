@@ -1,6 +1,7 @@
 package com.example.smart_restaurant_management_backend.controller;
 
 import com.example.smart_restaurant_management_backend.dto.OrderDetailDTO;
+import com.example.smart_restaurant_management_backend.dto.OrderSummaryDTO;
 import com.example.smart_restaurant_management_backend.dto.TransferOrderRequest;
 import com.example.smart_restaurant_management_backend.model.Order;
 import com.example.smart_restaurant_management_backend.model.Transaction;
@@ -28,17 +29,17 @@ public class OrderController {
     }
     // 根据桌位ID获取订单
     @GetMapping("/table/{tableId}")
-    public List<Order> getOrdersByTableId(@PathVariable Integer tableId) {
+    public List<OrderSummaryDTO> getOrdersByTableId(@PathVariable Long tableId) {
         return orderService.findByTableId(tableId);
     }
     // 获取桌位订单详情（包含菜品信息）
     @GetMapping("/table/{tableId}/details")
-    public List<OrderDetailDTO> getOrderDetailsByTableId(@PathVariable Integer tableId) {
+    public List<OrderDetailDTO> getOrderDetailsByTableId(@PathVariable Long tableId) {
         return orderService.findOrderDetailsByTableId(tableId);
     }
   // 根据ID获取单个订单
     @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Integer id) {
+    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
         return orderService.findById(id)
                 .map(ResponseEntity::ok) // 找到订单返回200状态
                 .orElse(ResponseEntity.notFound().build());
@@ -50,7 +51,7 @@ public class OrderController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Order> updateOrder(@PathVariable Integer id, @RequestBody Order order) {
+    public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order order) {
         return orderService.findById(id)
                 .map(existingOrder -> {
                     existingOrder.setTableId(order.getTableId());
@@ -64,17 +65,17 @@ public class OrderController {
                 .orElse(ResponseEntity.notFound().build());
     }
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteOrder(@PathVariable Integer id) {
+    public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
         orderService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
     @DeleteMapping("/table/{tableId}")
-    public ResponseEntity<Void> deleteOrdersByTableId(@PathVariable Integer tableId) {
+    public ResponseEntity<Void> deleteOrdersByTableId(@PathVariable Long tableId) {
         orderService.deleteByTableId(tableId);
         return ResponseEntity.noContent().build();
     }
     @PostMapping("/checkout/{tableId}")
-    public ResponseEntity<Transaction> checkout(@PathVariable Integer tableId) {
+    public ResponseEntity<Transaction> checkout(@PathVariable Long tableId) {
         try {
             Transaction transaction = orderService.checkout(tableId);
             return ResponseEntity.ok(transaction);

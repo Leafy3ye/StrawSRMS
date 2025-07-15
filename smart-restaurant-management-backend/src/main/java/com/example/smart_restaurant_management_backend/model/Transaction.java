@@ -1,6 +1,7 @@
 package com.example.smart_restaurant_management_backend.model;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -9,26 +10,39 @@ public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
 
-    // 添加租户ID字段
+    // 租户ID - 改为Long类型
     @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
+    private Long tenantId;
+    
+    // 新增店铺ID字段
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
 
     @Column(name = "table_id", nullable = false)
-    private Integer tableId;
+    private Long tableId;
 
     @Column(name = "table_name", length = 50)
     private String tableName;
 
     @Column(name = "total_amount", nullable = false, precision = 10, scale = 2)
-    private Double totalAmount;
+    private BigDecimal totalAmount;
 
     @Column(name = "order_count", nullable = false)
     private Integer orderCount;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+    
+    // JPA关联关系
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", insertable = false, updatable = false)
+    private Tenant tenant;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id", insertable = false, updatable = false)
+    private Store store;
 
     @PrePersist
     protected void onCreate() {
@@ -38,38 +52,42 @@ public class Transaction {
     // 构造函数
     public Transaction() {}
 
-    // 修改构造函数
-    public Transaction(String tenantId, Integer tableId, String tableName, Double totalAmount, Integer orderCount) {
+    public Transaction(Long tenantId, Long storeId, Long tableId, String tableName, BigDecimal totalAmount, Integer orderCount) {
         this.tenantId = tenantId;
+        this.storeId = storeId;
         this.tableId = tableId;
         this.tableName = tableName;
         this.totalAmount = totalAmount;
         this.orderCount = orderCount;
     }
 
-    // 添加租户ID的getter和setter
-    public String getTenantId() {
-        return tenantId;
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
+    
+    public Long getStoreId() { return storeId; }
+    public void setStoreId(Long storeId) { this.storeId = storeId; }
 
-    public Integer getId() { return id; }
-    public void setId(Integer id) { this.id = id; }
-
-    public Integer getTableId() { return tableId; }
-    public void setTableId(Integer tableId) { this.tableId = tableId; }
+    public Long getTableId() { return tableId; }
+    public void setTableId(Long tableId) { this.tableId = tableId; }
 
     public String getTableName() { return tableName; }
     public void setTableName(String tableName) { this.tableName = tableName; }
 
-    public Double getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
 
     public Integer getOrderCount() { return orderCount; }
     public void setOrderCount(Integer orderCount) { this.orderCount = orderCount; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
+    
+    public Tenant getTenant() { return tenant; }
+    public void setTenant(Tenant tenant) { this.tenant = tenant; }
+    
+    public Store getStore() { return store; }
+    public void setStore(Store store) { this.store = store; }
 }

@@ -10,6 +10,8 @@ public class MemberDTO {
     private String email;
     private String memberLevel;
     private BigDecimal balance;
+    private Long tenantId;
+    private Long storeId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -17,7 +19,7 @@ public class MemberDTO {
     public MemberDTO() {}
 
     public MemberDTO(Long id, String name, String phone, String email, 
-                     String memberLevel, BigDecimal balance, 
+                     String memberLevel, BigDecimal balance, Long tenantId, Long storeId,
                      LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
@@ -25,6 +27,8 @@ public class MemberDTO {
         this.email = email;
         this.memberLevel = memberLevel;
         this.balance = balance;
+        this.tenantId = tenantId;
+        this.storeId = storeId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -47,6 +51,12 @@ public class MemberDTO {
 
     public BigDecimal getBalance() { return balance; }
     public void setBalance(BigDecimal balance) { this.balance = balance; }
+
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
+
+    public Long getStoreId() { return storeId; }
+    public void setStoreId(Long storeId) { this.storeId = storeId; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -6,6 +6,7 @@ import com.example.smart_restaurant_management_backend.context.TenantContext;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.math.BigDecimal;
 
 @Service
 public class TransactionService {
@@ -17,32 +18,37 @@ public class TransactionService {
     }
 
     public Transaction save(Transaction transaction) {
-        // 设置当前租户ID
-        transaction.setTenantId(TenantContext.getCurrentTenantUuid());
+        // 修复：使用 getCurrentTenantId() 而不是 getCurrentTenantUuid()
+        transaction.setTenantId(TenantContext.getCurrentTenantId());
         return transactionRepository.save(transaction);
     }
 
     public List<Transaction> findAll() {
-        // 只返回当前租户的交易记录
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        return transactionRepository.findByTenantId(currentTenantId);
+        // 修复：使用 getCurrentTenantId() 和对应的 Repository 方法
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        return transactionRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
     }
 
     public List<Transaction> findTodayTransactions() {
-        // 只返回当前租户今日的交易记录
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        return transactionRepository.findTodayTransactionsByTenantId(currentTenantId);
+        // 修复：使用正确的方法和参数类型
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        return transactionRepository.findTodayTransactionsByTenantIdAndStoreId(currentTenantId, currentStoreId);
     }
 
     public Long countTodayTransactions() {
-        // 只统计当前租户今日的交易数量
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        return transactionRepository.countTodayTransactionsByTenantId(currentTenantId);
+        // 修复：使用正确的方法和参数类型
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        return transactionRepository.countTodayTransactionsByTenantIdAndStoreId(currentTenantId, currentStoreId);
     }
 
-    public Double sumTodayRevenue() {
-        // 只计算当前租户今日的总收入
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        return transactionRepository.sumTodayRevenueByTenantId(currentTenantId);
+    public BigDecimal sumTodayRevenue() {
+        // 修复：使用正确的方法和参数类型
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        BigDecimal result = transactionRepository.sumTodayRevenueByTenantIdAndStoreId(currentTenantId, currentStoreId);
+        return result != null ? result : BigDecimal.ZERO;
     }
 }

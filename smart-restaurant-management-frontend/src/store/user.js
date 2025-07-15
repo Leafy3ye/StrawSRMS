@@ -5,14 +5,15 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     user: null,
     token: null,
-    // 删除这行：isLoggedIn: false,
     showSetupDialog: false
   }),
 
   getters: {
     isLoggedIn: (state) => !!state.token && !!state.user,
     shopName: (state) => state.user?.restaurantName || '智慧餐饮解决方案',
-    needsSetup: (state) => state.user && !state.user.setupCompleted
+    needsSetup: (state) => state.user && !state.user.setupCompleted,
+    // 添加超级管理员判断
+    isSuperAdmin: (state) => state.user?.userType === 'SUPER_ADMIN'
   },
 
   actions: {
@@ -49,7 +50,7 @@ export const useUserStore = defineStore('user', {
         // 登录成功后立即应用主题设置
         this.applyUserTheme();
         
-        return { success: true };
+        return { success: true, isSuperAdmin: user.userType === 'SUPER_ADMIN' };
       } catch (error) {
         throw new Error(error.response?.data?.error || '登录失败');
       }

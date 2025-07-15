@@ -7,8 +7,8 @@ import com.example.smart_restaurant_management_backend.model.Member;
 import com.example.smart_restaurant_management_backend.model.RechargeRecord;
 import com.example.smart_restaurant_management_backend.repository.MemberRepository;
 import com.example.smart_restaurant_management_backend.repository.RechargeRecordRepository;
-import org.slf4j.Logger; // 添加这行
-import org.slf4j.LoggerFactory; // 添加这行
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -24,7 +24,7 @@ import java.util.Optional;
 @Service
 public class MemberService {
     
-    private static final Logger logger = LoggerFactory.getLogger(MemberService.class); // 添加这行
+    private static final Logger logger = LoggerFactory.getLogger(MemberService.class);
     
     @Autowired
     private MemberRepository memberRepository;
@@ -35,35 +35,39 @@ public class MemberService {
     @Autowired
     private TenantEmailService tenantEmailService;
 
-    // 获取当前租户的所有会员
+    // 获取当前租户和门店的所有会员
     public List<Member> getAllMembers() {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
-        return memberRepository.findByTenantId(currentTenantId);
+        return memberRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
     }
 
-    // 根据ID获取当前租户的会员
+    // 根据ID获取当前租户和门店的会员
     @Cacheable(value = "members", key = "#id")
     public Optional<Member> getMemberById(Long id) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
-        return memberRepository.findByIdAndTenantId(id, currentTenantId);
+        return memberRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId);
     }
 
     // 添加会员
     @CacheEvict(value = "members", allEntries = true)
     public Member addMember(Member member) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
         
-        // 设置租户ID
+        // 设置租户ID和门店ID
         member.setTenantId(currentTenantId);
+        member.setStoreId(currentStoreId);
         
         // 保存会员信息
         Member savedMember = memberRepository.save(member);
@@ -75,10 +79,10 @@ public class MemberService {
                     savedMember.getName(),
                     savedMember.getEmail(),
                     savedMember.getMemberLevel(),
-                    convertTenantIdToLong(currentTenantId) // 转换为Long类型
+                    currentTenantId
                 );
             } catch (Exception e) {
-                System.err.println("发送欢迎邮件失败，但会员添加成功: " + e.getMessage());
+                logger.error("发送欢迎邮件失败，但会员添加成功: {}", e.getMessage());
             }
         }
         
@@ -88,12 +92,13 @@ public class MemberService {
     // 更新会员
     @CachePut(value = "members", key = "#id")
     public Member updateMember(Long id, Member member) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
         
-        Optional<Member> existingMemberOpt = memberRepository.findByIdAndTenantId(id, currentTenantId);
+        Optional<Member> existingMemberOpt = memberRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId);
         if (existingMemberOpt.isPresent()) {
             Member existingMember = existingMemberOpt.get();
             existingMember.setName(member.getName());
@@ -109,12 +114,13 @@ public class MemberService {
     // 删除会员
     @CacheEvict(value = "members", key = "#id")
     public void deleteMember(Long id) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
         
-        Optional<Member> memberOpt = memberRepository.findByIdAndTenantId(id, currentTenantId);
+        Optional<Member> memberOpt = memberRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId);
         if (memberOpt.isPresent()) {
             memberRepository.delete(memberOpt.get());
         }
@@ -122,24 +128,26 @@ public class MemberService {
 
     // 搜索会员
     public List<Member> searchMembers(String keyword) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
-        return memberRepository.findByTenantIdAndNameContaining(currentTenantId, keyword);
+        return memberRepository.findByTenantIdAndStoreIdAndNameContaining(currentTenantId, currentStoreId, keyword);
     }
 
     // 充值功能 - 清除相关缓存
     @CacheEvict(value = {"members", "memberBalance"}, key = "#rechargeRequest.memberId")
     @Transactional
     public Member recharge(RechargeRequestDTO rechargeRequest) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
         
-        // 使用租户过滤的查询方法
-        Optional<Member> memberOpt = memberRepository.findByIdAndTenantId(rechargeRequest.getMemberId(), currentTenantId);
+        // 使用租户和门店过滤的查询方法
+        Optional<Member> memberOpt = memberRepository.findByIdAndTenantIdAndStoreId(rechargeRequest.getMemberId(), currentTenantId, currentStoreId);
         if (memberOpt.isPresent()) {
             Member member = memberOpt.get();
             
@@ -154,6 +162,7 @@ public class MemberService {
             record.setPaymentMethod(rechargeRequest.getPaymentMethod());
             record.setRemark(rechargeRequest.getRemark());
             record.setTenantId(currentTenantId);
+            record.setStoreId(currentStoreId);
             rechargeRecordRepository.save(record);
             
             // 保存会员信息
@@ -167,10 +176,10 @@ public class MemberService {
                         member.getEmail(), 
                         rechargeRequest.getAmount(), 
                         newBalance,
-                        convertTenantIdToLong(currentTenantId) // 转换为Long类型
+                        currentTenantId
                     );
                 } catch (Exception e) {
-                    System.err.println("发送邮件失败，但充值操作已成功: " + e.getMessage());
+                    logger.error("发送邮件失败，但充值操作已成功: {}", e.getMessage());
                 }
             }
             
@@ -183,13 +192,14 @@ public class MemberService {
     @CacheEvict(value = {"members", "memberBalance"}, key = "#deductRequest.memberId")
     @Transactional
     public Member deductBalance(DeductRequestDTO deductRequest) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
         
-        // 使用租户过滤的查询方法
-        Optional<Member> memberOpt = memberRepository.findByIdAndTenantId(deductRequest.getMemberId(), currentTenantId);
+        // 使用租户和门店过滤的查询方法
+        Optional<Member> memberOpt = memberRepository.findByIdAndTenantIdAndStoreId(deductRequest.getMemberId(), currentTenantId, currentStoreId);
         if (memberOpt.isPresent()) {
             Member member = memberOpt.get();
             
@@ -211,10 +221,10 @@ public class MemberService {
                             deductRequest.getTableName() != null ? deductRequest.getTableName() : "未知桌位",
                             deductRequest.getConsumeItems() != null ? deductRequest.getConsumeItems() : Collections.singletonList("消费详情"),
                             deductRequest.getTotalItems() != null ? deductRequest.getTotalItems() : 1,
-                            convertTenantIdToLong(currentTenantId) // 转换为Long类型
+                            currentTenantId
                         );
                     } catch (Exception e) {
-                        System.err.println("发送消费邮件失败，但不影响消费流程: " + e.getMessage());
+                        logger.error("发送消费邮件失败，但不影响消费流程: {}", e.getMessage());
                     }
                 }
                 
@@ -228,11 +238,12 @@ public class MemberService {
     
     // 获取会员充值记录
     public List<RechargeRecord> getMemberRechargeRecords(Long memberId) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
-        return rechargeRecordRepository.findByMemberIdAndTenantIdOrderByCreatedAtDesc(memberId, currentTenantId);
+        return rechargeRecordRepository.findByMemberIdAndTenantIdAndStoreIdOrderByCreatedAtDesc(memberId, currentTenantId, currentStoreId);
     }
     
     // 保存会员 - 更新缓存
@@ -240,22 +251,5 @@ public class MemberService {
     @CacheEvict(value = "memberBalance", key = "#member.id")
     public Member saveMember(Member member) {
         return memberRepository.save(member);
-    }
-
-    /**
-     * 将字符串租户ID转换为Long类型
-     * @param tenantIdStr 字符串类型的租户ID
-     * @return Long类型的租户ID，如果转换失败返回null
-     */
-    private Long convertTenantIdToLong(String tenantIdStr) {
-        if (tenantIdStr == null || tenantIdStr.trim().isEmpty()) {
-            return null;
-        }
-        try {
-            return Long.parseLong(tenantIdStr);
-        } catch (NumberFormatException e) {
-            logger.warn("无法将租户ID转换为Long类型: {}", tenantIdStr);
-            return null;
-        }
     }
 }

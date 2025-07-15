@@ -10,17 +10,18 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 public interface DishRepository extends JpaRepository<Dish, Long> {
-    // 根据租户ID查询菜品
-    List<Dish> findByTenantId(String tenantId);
-    
-    // 根据租户ID和菜品ID查询
-    Optional<Dish> findByIdAndTenantId(Long id, String tenantId);
-    
-    // 根据租户ID和可用状态查询
-    List<Dish> findByTenantIdAndIsAvailable(String tenantId, Boolean isAvailable);
+    // 更新：使用Long类型的tenantId和storeId
+    List<Dish> findByTenantIdAndStoreId(Long tenantId, Long storeId);
+    Optional<Dish> findByIdAndTenantIdAndStoreId(Long id, Long tenantId, Long storeId);
+    List<Dish> findByTenantIdAndStoreIdAndIsAvailable(Long tenantId, Long storeId, Boolean isAvailable);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM Dish d WHERE d.tenantId = :tenantId")
-    void deleteByTenantId(@Param("tenantId") String tenantId);
+    void deleteByTenantId(@Param("tenantId") Long tenantId);
+    
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Dish d WHERE d.storeId = :storeId")
+    void deleteByStoreId(@Param("storeId") Long storeId);
 }

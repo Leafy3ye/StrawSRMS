@@ -31,7 +31,7 @@
     </div>
 
     <!-- 桌位管理 -->
-    <el-row :gutter="[20, 20]" class="table-row">
+    <el-row :gutter="20" class="table-row">
       <el-col :span="5" v-for="table in tables" :key="table.id">
         <el-card 
           class="table-card" 
@@ -173,18 +173,66 @@ const tableRules = {
 };
 
 // 获取桌位数据
-const getTables = async () => {
-  try {
-    const response = await api.get("/api/tables"); // 调用后端接口
-    tables.value = response.data; // 将返回的桌位数据保存到 tables 变量中
+// 添加加载状态
+const loading = ref(false);
 
-    // 获取每个桌位的订单
-    tables.value.forEach(async (table) => {
-      const orderResponse = await api.get(`/api/orders/table/${table.id}`);
-      table.orders = orderResponse.data; // 将订单数据添加到对应桌位
-    });
+const getTables = async () => {
+  loading.value = true;
+  try {
+    const response = await api.get("/api/tables");
+    
+    // 确保响应数据是数组
+    if (Array.isArray(response.data)) {
+      tables.value = response.data;
+      
+      // 只有当tables.value是数组且不为空时才获取订单
+      if (tables.value.length > 0) {
+        // 使用 Promise.all 替代 forEach，避免并发问题
+        const orderPromises = tables.value.map(async (table) => {
+          try {
+            const orderResponse = await api.get(`/api/orders/table/${table.id}`);
+            table.orders = Array.isArray(orderResponse.data) ? orderResponse.data : [];
+            return table;
+          } catch (error) {
+            console.error(`获取桌位 ${table.id} 订单失败:`, error);
+            table.orders = [];
+            return table;
+          }
+        });
+        
+        await Promise.all(orderPromises);
+      }
+    } else {
+      console.error("获取桌位数据格式错误:", response.data);
+      tables.value = [];
+      ElMessage.error("获取桌位数据格式错误，请联系管理员");
+    }
+    
   } catch (error) {
-    console.error("无法获取桌位数据", error);
+    console.error("获取桌位数据失败:", error);
+    
+    // 确保tables.value始终是数组
+    tables.value = [];
+    
+    // 根据错误类型显示不同的错误信息
+    if (error.response) {
+      const status = error.response.status;
+      const message = error.response.data?.message || error.response.data || '服务器错误';
+      
+      if (status === 401) {
+        ElMessage.error("登录已过期，请重新登录");
+        // 可以在这里跳转到登录页
+        // router.push('/login');
+      } else if (status === 500) {
+        ElMessage.error(`服务器内部错误：${message}`);
+      } else {
+        ElMessage.error(`获取桌位数据失败：${message}`);
+      }
+    } else if (error.request) {
+      ElMessage.error("网络连接失败，请检查网络连接");
+    } else {
+      ElMessage.error("获取桌位数据失败，请稍后再试");
+    }
   }
 };
 

@@ -4,7 +4,6 @@ import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
@@ -17,9 +16,13 @@ public class Member implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 添加租户ID字段
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
+    // 租户ID - 改为Long类型
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+    
+    // 新增店铺ID字段
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
 
     @Column(nullable = false)
     private String name;
@@ -34,7 +37,7 @@ public class Member implements Serializable {
     private BigDecimal balance = BigDecimal.ZERO;
 
     @Column(name = "member_level")
-    @JsonProperty("level")  // 添加这个注解
+    @JsonProperty("level")
     private String memberLevel = "普通会员";
 
     @Column(name = "created_at", updatable = false)
@@ -42,6 +45,15 @@ public class Member implements Serializable {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    // JPA关联关系
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", insertable = false, updatable = false)
+    private Tenant tenant;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_id", insertable = false, updatable = false)
+    private Store store;
 
     @PrePersist
     protected void onCreate() {
@@ -54,77 +66,40 @@ public class Member implements Serializable {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters and setters
-    public Long getId() {
-        return id;
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
+    
+    public Long getStoreId() { return storeId; }
+    public void setStoreId(Long storeId) { this.storeId = storeId; }
 
-    // 添加 tenantId 的 getter 和 setter
-    public String getTenantId() {
-        return tenantId;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setTenantId(String tenantId) {
-        this.tenantId = tenantId;
-    }
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
 
-    public String getName() {
-        return name;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public BigDecimal getBalance() { return balance; }
+    public void setBalance(BigDecimal balance) { this.balance = balance; }
 
-    public String getPhone() {
-        return phone;
-    }
+    public String getMemberLevel() { return memberLevel; }
+    public void setMemberLevel(String memberLevel) { this.memberLevel = memberLevel; }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public void setBalance(BigDecimal balance) {
-        this.balance = balance;
-    }
-
-    public String getMemberLevel() {
-        return memberLevel;
-    }
-
-    public void setMemberLevel(String memberLevel) {
-        this.memberLevel = memberLevel;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public Tenant getTenant() { return tenant; }
+    public void setTenant(Tenant tenant) { this.tenant = tenant; }
+    
+    public Store getStore() { return store; }
+    public void setStore(Store store) { this.store = store; }
 }

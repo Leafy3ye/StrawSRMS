@@ -2,7 +2,8 @@ package com.example.smart_restaurant_management_backend.dto;
 
 public class UserDTO {
     private Long id;
-    private String tenantId;
+    private Long tenantId;
+    private Long storeId;
     private String uuid;
     private String username;
     private String email;
@@ -11,7 +12,8 @@ public class UserDTO {
     private String avatarUrl;
     private String restaurantName;
     private Boolean setupCompleted;
-    private String themeSettings; // 新增主题设置字段
+    private String themeSettings;
+    private String userType; // 添加用户类型字段
 
     // 不包含密码，用于返回给前端
     
@@ -23,12 +25,20 @@ public class UserDTO {
         this.id = id;
     }
 
-    public String getTenantId() {
+    public Long getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(String tenantId) {
+    public void setTenantId(Long tenantId) {
         this.tenantId = tenantId;
+    }
+
+    public Long getStoreId() {
+        return storeId;
+    }
+
+    public void setStoreId(Long storeId) {
+        this.storeId = storeId;
     }
 
     public String getUuid() {
@@ -101,5 +111,13 @@ public class UserDTO {
     
     public void setThemeSettings(String themeSettings) {
         this.themeSettings = themeSettings;
+    }
+    
+    public String getUserType() {
+        return userType;
+    }
+    
+    public void setUserType(String userType) {
+        this.userType = userType;
     }
 }

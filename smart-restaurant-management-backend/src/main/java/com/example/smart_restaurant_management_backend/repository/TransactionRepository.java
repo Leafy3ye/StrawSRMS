@@ -13,41 +13,40 @@ import java.util.Optional;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    // 根据租户ID查询交易记录
+    // 更新：使用Long类型的tenantId和storeId
+    List<Transaction> findByTenantIdAndStoreId(Long tenantId, Long storeId);
+    Optional<Transaction> findByIdAndTenantIdAndStoreId(Long id, Long tenantId, Long storeId);
+    List<Transaction> findByTenantIdAndStoreIdAndTableId(Long tenantId, Long storeId, Long tableId);
+    
+    // 统计查询 - 添加storeId过滤
+    @Query("SELECT t FROM Transaction t WHERE t.tenantId = ?1 AND t.storeId = ?2 AND DATE(t.createdAt) = CURRENT_DATE")
+    List<Transaction> findTodayTransactionsByTenantIdAndStoreId(Long tenantId, Long storeId);
+    
+    @Query("SELECT COUNT(t) FROM Transaction t WHERE t.tenantId = ?1 AND t.storeId = ?2 AND DATE(t.createdAt) = CURRENT_DATE")
+    Long countTodayTransactionsByTenantIdAndStoreId(Long tenantId, Long storeId);
+    
+    @Query("SELECT COALESCE(SUM(t.totalAmount), 0.0) FROM Transaction t WHERE t.tenantId = ?1 AND t.storeId = ?2 AND DATE(t.createdAt) = CURRENT_DATE")
+    java.math.BigDecimal sumTodayRevenueByTenantIdAndStoreId(Long tenantId, Long storeId);
+    
+    // 兼容旧版本的方法（只按租户ID查询）
     List<Transaction> findByTenantId(String tenantId);
     
-    // 根据租户ID和交易ID查询
-    Optional<Transaction> findByIdAndTenantId(Long id, String tenantId);
-    
-    // 根据租户ID和桌位ID查询交易记录
-    List<Transaction> findByTenantIdAndTableId(String tenantId, Integer tableId);
-    
-    // 查询今日交易记录
-    @Query("SELECT t FROM Transaction t WHERE DATE(t.createdAt) = CURRENT_DATE")
-    List<Transaction> findTodayTransactions();
-    
-    // 统计今日交易数量
-    @Query("SELECT COUNT(t) FROM Transaction t WHERE DATE(t.createdAt) = CURRENT_DATE")
-    Long countTodayTransactions();
-    
-    // 计算今日总收入
-    @Query("SELECT COALESCE(SUM(t.totalAmount), 0.0) FROM Transaction t WHERE DATE(t.createdAt) = CURRENT_DATE")
-    Double sumTodayRevenue();
-    
-    // 根据租户ID查询今日交易记录
     @Query("SELECT t FROM Transaction t WHERE t.tenantId = ?1 AND DATE(t.createdAt) = CURRENT_DATE")
     List<Transaction> findTodayTransactionsByTenantId(String tenantId);
     
-    // 根据租户ID统计今日交易数量
     @Query("SELECT COUNT(t) FROM Transaction t WHERE t.tenantId = ?1 AND DATE(t.createdAt) = CURRENT_DATE")
     Long countTodayTransactionsByTenantId(String tenantId);
     
-    // 根据租户ID计算今日总收入
     @Query("SELECT COALESCE(SUM(t.totalAmount), 0.0) FROM Transaction t WHERE t.tenantId = ?1 AND DATE(t.createdAt) = CURRENT_DATE")
-    Double sumTodayRevenueByTenantId(String tenantId);
+    java.math.BigDecimal sumTodayRevenueByTenantId(String tenantId);
 
     @Modifying
     @Transactional
     @Query("DELETE FROM Transaction t WHERE t.tenantId = :tenantId")
-    void deleteByTenantId(@Param("tenantId") String tenantId);
+    void deleteByTenantId(@Param("tenantId") Long tenantId);
+    
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Transaction t WHERE t.storeId = :storeId")
+    void deleteByStoreId(@Param("storeId") Long storeId);
 }

@@ -15,38 +15,42 @@ public class MemberLevelService {
     @Autowired
     private MemberLevelRepository memberLevelRepository;
 
-    // 获取当前租户的所有会员等级
+    // 获取当前租户和门店的所有会员等级
     public List<MemberLevel> getAllMemberLevels() {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
-        return memberLevelRepository.findByTenantIdAndIsEnabledTrueOrderBySortOrder(currentTenantId);
+        return memberLevelRepository.findByTenantIdAndStoreIdAndIsEnabledTrueOrderBySortOrder(currentTenantId, currentStoreId);
     }
 
     // 根据ID获取会员等级
     public Optional<MemberLevel> getMemberLevelById(Long id) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
-        return memberLevelRepository.findByIdAndTenantId(id, currentTenantId);
+        return memberLevelRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId);
     }
 
     // 添加会员等级
     public MemberLevel addMemberLevel(MemberLevel memberLevel) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
 
         // 检查等级名称是否已存在
-        if (memberLevelRepository.existsByTenantIdAndLevelName(currentTenantId, memberLevel.getLevelName())) {
+        if (memberLevelRepository.existsByTenantIdAndStoreIdAndLevelName(currentTenantId, currentStoreId, memberLevel.getLevelName())) {
             throw new RuntimeException("该等级名称已存在");
         }
 
-        // 设置租户ID
+        // 设置租户ID和门店ID
         memberLevel.setTenantId(currentTenantId);
+        memberLevel.setStoreId(currentStoreId);
         
         // 如果没有设置排序权重，设置为最大值+1
         if (memberLevel.getSortOrder() == null) {
@@ -63,18 +67,19 @@ public class MemberLevelService {
 
     // 更新会员等级
     public MemberLevel updateMemberLevel(Long id, MemberLevel memberLevel) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
 
-        Optional<MemberLevel> existingLevelOpt = memberLevelRepository.findByIdAndTenantId(id, currentTenantId);
+        Optional<MemberLevel> existingLevelOpt = memberLevelRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId);
         if (existingLevelOpt.isPresent()) {
             MemberLevel existingLevel = existingLevelOpt.get();
             
             // 检查等级名称是否与其他等级冲突
-            if (memberLevelRepository.existsByTenantIdAndLevelNameAndIdNot(
-                currentTenantId, memberLevel.getLevelName(), id)) {
+            if (memberLevelRepository.existsByTenantIdAndStoreIdAndLevelNameAndIdNot(
+                currentTenantId, currentStoreId, memberLevel.getLevelName(), id)) {
                 throw new RuntimeException("该等级名称已存在");
             }
 
@@ -93,12 +98,13 @@ public class MemberLevelService {
 
     // 删除会员等级（软删除）
     public void deleteMemberLevel(Long id) {
-        String currentTenantId = TenantContext.getCurrentTenantUuid();
-        if (currentTenantId == null) {
-            throw new RuntimeException("未找到当前租户信息");
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或门店信息");
         }
 
-        Optional<MemberLevel> memberLevelOpt = memberLevelRepository.findByIdAndTenantId(id, currentTenantId);
+        Optional<MemberLevel> memberLevelOpt = memberLevelRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId);
         if (memberLevelOpt.isPresent()) {
             MemberLevel memberLevel = memberLevelOpt.get();
             memberLevel.setIsEnabled(false);

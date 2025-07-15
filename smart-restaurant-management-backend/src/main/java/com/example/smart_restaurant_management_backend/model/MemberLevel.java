@@ -15,9 +15,13 @@ public class MemberLevel implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 租户ID，确保数据隔离
-    @Column(name = "tenant_id", nullable = false, length = 50)
-    private String tenantId;
+    // 租户ID - 改为Long类型
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+    
+    // 新增店铺ID字段
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
 
     // 等级名称
     @Column(name = "level_name", nullable = false, length = 50)
@@ -68,8 +72,11 @@ public class MemberLevel implements Serializable {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public String getTenantId() { return tenantId; }
-    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
+    
+    public Long getStoreId() { return storeId; }
+    public void setStoreId(Long storeId) { this.storeId = storeId; }
 
     public String getLevelName() { return levelName; }
     public void setLevelName(String levelName) { this.levelName = levelName; }
