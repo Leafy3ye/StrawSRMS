@@ -55,7 +55,7 @@ public class ConditionalCacheConfig {
             logger.info("🚀 Redis可用，创建Redis缓存管理器");
             return createRedisCacheManager(redisConnectionFactory);
         } else {
-            logger.warn("⚠️ Redis不可用，使用内存缓存管理器");
+            logger.warn("⚠️ Redis不可用，使用内存缓存管理器，验证码等服务暂不可用！");
             return createMemoryCacheManager();
         }
     }
