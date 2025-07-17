@@ -3,6 +3,7 @@ package com.example.smart_restaurant_management_backend.model;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 
 @Entity
@@ -46,10 +47,12 @@ public class Order {
     private Boolean prepared = false;
     
     // JPA关联关系
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", insertable = false, updatable = false)
     private Tenant tenant;
-    
+
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)
     private Store store;

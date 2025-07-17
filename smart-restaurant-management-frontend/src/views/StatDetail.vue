@@ -36,23 +36,8 @@
 
     <!-- 交易记录表格 -->
     <el-table :data="paginatedTransactions" style="width: 100%" stripe>
-      <el-table-column prop="id" label="订单ID" width="100" />
-      <el-table-column prop="tableName" label="桌位" width="120" />
-      <el-table-column prop="orderCount" label="菜品数量" width="120">
-        <template #default="scope">
-          {{ scope.row.orderCount }} 份
-        </template>
-      </el-table-column>
-      <el-table-column prop="totalAmount" label="交易金额" width="120">
-        <template #default="scope">
-          ¥{{ parseFloat(scope.row.totalAmount).toFixed(2) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="createdAt" label="交易时间" width="180">
-        <template #default="scope">
-          {{ formatTime(scope.row.createdAt) }}
-        </template>
-      </el-table-column>
+      <el-table-column prop="id" label="订单ID" width="150" />
+      <el-table-column prop="tableName" label="桌位" width="150" />
       <el-table-column label="操作" width="120">
         <template #default="scope">
           <el-button type="primary" size="small" @click="viewDetail(scope.row)">
@@ -74,6 +59,57 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <!-- 订单详情弹窗 -->
+    <el-dialog v-model="showDetailDialog" title="订单详情" width="800px">
+      <div v-if="selectedTransaction">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="订单ID">{{ selectedTransaction.id }}</el-descriptions-item>
+          <el-descriptions-item label="桌位">{{ selectedTransaction.tableName }}</el-descriptions-item>
+          <el-descriptions-item label="菜品数量">{{ selectedTransaction.orderCount }} 份</el-descriptions-item>
+          <el-descriptions-item label="交易金额">¥{{ parseFloat(selectedTransaction.totalAmount).toFixed(2) }}</el-descriptions-item>
+          <el-descriptions-item label="交易时间" :span="2">{{ formatTime(selectedTransaction.createdAt) }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider>菜品详情</el-divider>
+
+        <div v-if="orderDetails && orderDetails.length > 0">
+          <el-table :data="orderDetails" style="width: 100%" size="small">
+            <el-table-column prop="dishName" label="菜品名称" />
+            <el-table-column prop="quantity" label="数量" width="80">
+              <template #default="scope">
+                {{ scope.row.quantity }} 份
+              </template>
+            </el-table-column>
+            <el-table-column prop="price" label="单价" width="100">
+              <template #default="scope">
+                ¥{{ parseFloat(scope.row.price).toFixed(2) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="小计" width="100">
+              <template #default="scope">
+                ¥{{ (parseFloat(scope.row.price) * scope.row.quantity).toFixed(2) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" />
+          </el-table>
+        </div>
+
+        <div v-else>
+          <el-alert
+            title="暂无菜品详情"
+            description="无法找到该交易对应的菜品信息"
+            type="warning"
+            :closable="false"
+            show-icon
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showDetailDialog = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -92,6 +128,9 @@ const statType = route.params.type;
 const transactions = ref([]);
 const currentPage = ref(1);
 const pageSize = ref(20);
+const showDetailDialog = ref(false);
+const selectedTransaction = ref(null);
+const orderDetails = ref([]);
 
 // 计算属性
 const totalAmount = computed(() => {
@@ -139,9 +178,21 @@ const goBack = () => {
   router.push('/');
 };
 
-const viewDetail = (transaction) => {
-  ElMessage.info(`查看订单 ${transaction.id} 的详细信息`);
-  // 这里可以添加查看订单详情的逻辑
+const viewDetail = async (transaction) => {
+  try {
+    selectedTransaction.value = transaction;
+    orderDetails.value = [];
+    showDetailDialog.value = true;
+
+    // 调用API获取交易详情和菜品信息
+    const response = await api.get(`/api/transactions/${transaction.id}/details`);
+    if (response.data.orders) {
+      orderDetails.value = response.data.orders;
+    }
+  } catch (error) {
+    console.error('获取订单详情失败:', error);
+    ElMessage.error('获取订单详情失败');
+  }
 };
 
 const handleSizeChange = (val) => {

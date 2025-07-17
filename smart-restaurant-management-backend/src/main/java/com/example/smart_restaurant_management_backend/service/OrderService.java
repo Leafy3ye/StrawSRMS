@@ -8,6 +8,7 @@ import com.example.smart_restaurant_management_backend.model.TableEntity;
 import com.example.smart_restaurant_management_backend.context.TenantContext;
 import com.example.smart_restaurant_management_backend.repository.OrderRepository;
 import com.example.smart_restaurant_management_backend.repository.DishRepository;
+import com.example.smart_restaurant_management_backend.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -28,13 +29,16 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final DishRepository dishRepository;
     private final TransactionService transactionService;
+    private final TransactionRepository transactionRepository;
     private final TableService tableService;
 
-    public OrderService(OrderRepository orderRepository, DishRepository dishRepository, 
-                       TransactionService transactionService, TableService tableService) {
+    public OrderService(OrderRepository orderRepository, DishRepository dishRepository,
+                       TransactionService transactionService, TransactionRepository transactionRepository,
+                       TableService tableService) {
         this.orderRepository = orderRepository;
         this.dishRepository = dishRepository;
         this.transactionService = transactionService;
+        this.transactionRepository = transactionRepository;
         this.tableService = tableService;
     }
 
@@ -42,13 +46,17 @@ public class OrderService {
     public List<Order> findAll() {
         Long currentTenantId = TenantContext.getCurrentTenantId();
         Long currentStoreId = TenantContext.getCurrentStoreId();
+
         if (currentTenantId == null) {
             throw new RuntimeException("未找到当前租户信息");
         }
-        if (currentStoreId == null) {
-            throw new RuntimeException("未找到当前店铺信息");
+
+        // 如果有店铺ID，按租户和店铺查询；否则按租户查询所有订单
+        if (currentStoreId != null) {
+            return orderRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
+        } else {
+            return orderRepository.findByTenantId(currentTenantId);
         }
-        return orderRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
     }
 
     // 根据桌位ID查询未完成订单 - 支持租户和店铺级别过滤
@@ -208,11 +216,53 @@ public class OrderService {
         // 创建交易记录
         Transaction transaction = new Transaction(currentTenantId, currentStoreId, tableId, tableName, totalAmount, orders.size());
         Transaction savedTransaction = transactionService.save(transaction);
-        
-        // 删除订单记录
-        orderRepository.deleteAll(orders);
-        
+
+        // 标记订单为已完成，而不是删除
+        for (Order order : orders) {
+            order.setCompleted(true);
+        }
+        orderRepository.saveAll(orders);
+
         return savedTransaction;
+    }
+
+    // 根据桌位ID和时间获取已完成的订单详情
+    public List<Map<String, Object>> getCompletedOrdersByTableAndTime(Long tableId, LocalDateTime transactionTime) {
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或店铺信息");
+        }
+
+        // 查找在交易时间前后5分钟内完成的订单
+        LocalDateTime startTime = transactionTime.minusMinutes(5);
+        LocalDateTime endTime = transactionTime.plusMinutes(5);
+
+        List<Order> orders = orderRepository.findByTenantIdAndStoreIdAndTableIdAndCompletedTrueAndCreatedAtBetween(
+            currentTenantId, currentStoreId, tableId, startTime, endTime);
+
+        return orders.stream().map(order -> {
+            Map<String, Object> orderInfo = new HashMap<>();
+            orderInfo.put("id", order.getId());
+            orderInfo.put("dishId", order.getDishId());
+            orderInfo.put("quantity", order.getQuantity());
+            orderInfo.put("price", order.getPrice());
+            orderInfo.put("remark", order.getRemark());
+            orderInfo.put("createdAt", order.getCreatedAt());
+
+            // 获取菜品信息
+            Optional<Dish> dish = dishRepository.findByIdAndTenantIdAndStoreId(
+                order.getDishId(), currentTenantId, currentStoreId);
+            if (dish.isPresent()) {
+                orderInfo.put("dishName", dish.get().getName());
+                orderInfo.put("dishPrice", dish.get().getPrice());
+            } else {
+                orderInfo.put("dishName", "未知菜品");
+                orderInfo.put("dishPrice", BigDecimal.ZERO);
+            }
+
+            return orderInfo;
+        }).collect(Collectors.toList());
     }
 
     // 订单转移 - 支持租户和店铺级别过滤
@@ -263,35 +313,36 @@ public class OrderService {
         if (currentStoreId == null) {
             throw new RuntimeException("未找到当前店铺信息");
         }
-        
+
         LocalDateTime endTime = LocalDateTime.now();
         LocalDateTime startTime;
-        
+
         if ("week".equals(period)) {
             startTime = endTime.minusDays(7);
         } else {
             startTime = endTime.minusDays(30);
         }
-        
-        List<Order> orders = orderRepository.findByTenantIdAndStoreIdAndCreatedAtBetween(
+
+        // 使用交易记录来统计订单数量，因为一个交易代表一个完整的订单
+        List<Transaction> transactions = transactionRepository.findByTenantIdAndStoreIdAndCreatedAtBetween(
             currentTenantId, currentStoreId, startTime, endTime);
-        
+
         // 按小时统计订单数量（0-23小时）
         Map<Integer, Integer> hourlyStats = new HashMap<>();
         for (int i = 0; i < 24; i++) {
             hourlyStats.put(i, 0);
         }
-        
-        for (Order order : orders) {
-            int hour = order.getCreatedAt().getHour();
+
+        for (Transaction transaction : transactions) {
+            int hour = transaction.getCreatedAt().getHour();
             hourlyStats.put(hour, hourlyStats.get(hour) + 1);
         }
-        
+
         Map<String, Object> result = new HashMap<>();
         result.put("hourlyStats", hourlyStats);
-        result.put("totalOrders", orders.size());
+        result.put("totalOrders", transactions.size());
         result.put("period", period);
-        
+
         return result;
     }
 
@@ -306,8 +357,8 @@ public class OrderService {
             throw new RuntimeException("未找到当前店铺信息");
         }
         
-        // 获取所有订单
-        List<Order> orders = orderRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
+        // 获取所有已完成的订单
+        List<Order> orders = orderRepository.findByTenantIdAndStoreIdAndCompletedTrue(currentTenantId, currentStoreId);
         
         // 统计每个菜品的销量
         Map<Long, Integer> dishQuantityMap = new HashMap<>();
@@ -431,7 +482,7 @@ public class OrderService {
         }
         
         LocalDateTime now = LocalDateTime.now();
-        List<Order> orders = orderRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
+        List<Order> orders = orderRepository.findByTenantIdAndStoreIdAndCompletedTrue(currentTenantId, currentStoreId);
         
         Map<String, Object> result = new HashMap<>();
         

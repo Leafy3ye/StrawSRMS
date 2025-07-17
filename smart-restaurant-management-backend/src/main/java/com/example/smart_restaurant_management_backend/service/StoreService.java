@@ -36,8 +36,13 @@ public class StoreService {
         if (currentTenantId == null) {
             throw new RuntimeException("未找到当前租户信息");
         }
-        // 设置租户ID
-        store.getTenant().setId(currentTenantId);
+
+        // 如果是新店铺且没有设置租户，则设置当前租户
+        if (store.getTenant() == null || store.getTenant().getId() == null) {
+            // 这里应该从数据库获取租户对象，而不是直接设置ID
+            // 在Controller中已经设置了完整的Tenant对象，所以这里不需要额外处理
+        }
+
         return storeRepository.save(store);
     }
     

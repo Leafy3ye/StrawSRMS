@@ -45,29 +45,71 @@ public class JwtTenantInterceptor implements HandlerInterceptor {
                 // 根据用户UUID获取租户信息
                 UserDTO user = getUserService().getUserByUuid(userUuid);
                 if (user != null) {
-                    // 设置租户上下文
+                    // 检查是否为超级管理员
+                    if ("SUPER_ADMIN".equals(user.getUserType())) {
+                        // 超级管理员可以通过请求头指定要查看的租户和店铺
+                        String tenantIdHeader = request.getHeader("X-Tenant-ID");
+                        String storeIdHeader = request.getHeader("X-Store-Id");
+
+                        if (tenantIdHeader != null) {
+                            try {
+                                Long tenantId = Long.parseLong(tenantIdHeader);
+                                TenantContext.setCurrentTenantId(tenantId);
+
+                                if (storeIdHeader != null) {
+                                    try {
+                                        Long storeId = Long.parseLong(storeIdHeader);
+                                        TenantContext.setCurrentStoreId(storeId);
+                                    } catch (NumberFormatException e) {
+                                        // 忽略无效的店铺ID
+                                    }
+                                }
+                            } catch (NumberFormatException e) {
+                                // 忽略无效的租户ID
+                            }
+                        }
+
+                        TenantContext.setCurrentUserUuid(userUuid);
+                        TenantContext.setIsSuperAdmin(true);
+                        request.setAttribute("currentUser", userUuid);
+                        request.setAttribute("userType", "SUPER_ADMIN");
+                        return true;
+                    }
+                    
+                    // 普通租户用户的处理逻辑
                     TenantContext.setCurrentTenantId(user.getTenantId());
                     TenantContext.setCurrentUserUuid(userUuid);
                     
-                    // 获取用户的默认店铺或从请求头中获取店铺ID
-                    String storeIdHeader = request.getHeader("X-Store-Id");
-                    Long storeId = null;
-                    
-                    if (storeIdHeader != null) {
-                        try {
-                            storeId = Long.parseLong(storeIdHeader);
-                            // 验证店铺是否属于当前租户
-                            if (!getStoreService().isStoreOwnedByTenant(storeId, user.getTenantId())) {
+                    // 获取用户的当前店铺ID，优先级：用户设置的currentStoreId > 请求头 > 默认店铺
+                    Long storeId = user.getCurrentStoreId();
+
+                    // 如果用户没有设置当前店铺，尝试从请求头获取
+                    if (storeId == null) {
+                        String storeIdHeader = request.getHeader("X-Store-Id");
+                        if (storeIdHeader != null) {
+                            try {
+                                storeId = Long.parseLong(storeIdHeader);
+                                // 验证店铺是否属于当前租户
+                                if (!getStoreService().isStoreOwnedByTenant(storeId, user.getTenantId())) {
+                                    storeId = null;
+                                }
+                            } catch (NumberFormatException e) {
                                 storeId = null;
                             }
-                        } catch (NumberFormatException e) {
-                            storeId = null;
                         }
                     }
-                    
+
+                    // 如果还是没有店铺ID，获取租户的默认店铺
                     if (storeId == null) {
-                        // 获取租户的默认店铺
                         storeId = getStoreService().getDefaultStoreIdByTenantId(user.getTenantId());
+                    }
+
+                    // 验证用户设置的currentStoreId是否有效
+                    if (storeId != null && user.getCurrentStoreId() != null) {
+                        if (!getStoreService().isStoreOwnedByTenant(storeId, user.getTenantId())) {
+                            // 如果用户设置的店铺无效，重置为默认店铺
+                            storeId = getStoreService().getDefaultStoreIdByTenantId(user.getTenantId());
+                        }
                     }
                     
                     if (storeId != null) {

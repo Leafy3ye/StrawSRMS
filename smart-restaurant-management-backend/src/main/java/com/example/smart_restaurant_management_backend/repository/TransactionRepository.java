@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByTenantIdAndStoreId(Long tenantId, Long storeId);
     Optional<Transaction> findByIdAndTenantIdAndStoreId(Long id, Long tenantId, Long storeId);
     List<Transaction> findByTenantIdAndStoreIdAndTableId(Long tenantId, Long storeId, Long tableId);
+
+    // 时间范围查询
+    List<Transaction> findByTenantIdAndStoreIdAndCreatedAtBetween(
+        Long tenantId, Long storeId, LocalDateTime startTime, LocalDateTime endTime);
     
     // 统计查询 - 添加storeId过滤
     @Query("SELECT t FROM Transaction t WHERE t.tenantId = ?1 AND t.storeId = ?2 AND DATE(t.createdAt) = CURRENT_DATE")

@@ -15,6 +15,11 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
     Optional<Dish> findByIdAndTenantIdAndStoreId(Long id, Long tenantId, Long storeId);
     List<Dish> findByTenantIdAndStoreIdAndIsAvailable(Long tenantId, Long storeId, Boolean isAvailable);
 
+    // 添加只按租户ID查询的方法（用于超级管理员查看租户所有菜品）
+    List<Dish> findByTenantId(Long tenantId);
+    Optional<Dish> findByIdAndTenantId(Long id, Long tenantId);
+    List<Dish> findByTenantIdAndIsAvailable(Long tenantId, Boolean isAvailable);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM Dish d WHERE d.tenantId = :tenantId")

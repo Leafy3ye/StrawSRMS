@@ -12,6 +12,8 @@ public class UserDTO {
     private String avatarUrl;
     private String restaurantName;
     private Boolean setupCompleted;
+    private String storeMode; // 店铺模式：single 或 multi
+    private Long currentStoreId; // 用户当前选择的店铺ID
     private String themeSettings;
     private String userType; // 添加用户类型字段
 
@@ -104,7 +106,23 @@ public class UserDTO {
     public void setSetupCompleted(Boolean setupCompleted) {
         this.setupCompleted = setupCompleted;
     }
-    
+
+    public String getStoreMode() {
+        return storeMode;
+    }
+
+    public void setStoreMode(String storeMode) {
+        this.storeMode = storeMode;
+    }
+
+    public Long getCurrentStoreId() {
+        return currentStoreId;
+    }
+
+    public void setCurrentStoreId(Long currentStoreId) {
+        this.currentStoreId = currentStoreId;
+    }
+
     public String getThemeSettings() {
         return themeSettings;
     }

@@ -2,7 +2,11 @@ package com.example.smart_restaurant_management_backend.repository;
 
 import com.example.smart_restaurant_management_backend.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.smart_restaurant_management_backend.enums.UserType;
 import java.util.List;
 import java.util.Optional;
@@ -27,4 +31,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUuid(String uuid);
     boolean existsByEmail(String email);
     boolean existsByPhone(String phone);
+
+    // 删除方法
+    void deleteByTenantId(Long tenantId);
+
+    // 更新方法：将指定租户下所有用户的 store_id 和 current_store_id 设置为 null
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE users SET store_id = NULL, current_store_id = NULL WHERE tenant_id = :tenantId", nativeQuery = true)
+    void updateStoreIdsToNullByTenantId(@Param("tenantId") Long tenantId);
 }

@@ -39,10 +39,17 @@ public class MemberService {
     public List<Member> getAllMembers() {
         Long currentTenantId = TenantContext.getCurrentTenantId();
         Long currentStoreId = TenantContext.getCurrentStoreId();
-        if (currentTenantId == null || currentStoreId == null) {
-            throw new RuntimeException("未找到当前租户或门店信息");
+
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
         }
-        return memberRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
+
+        // 如果有店铺ID，按租户和店铺查询；否则按租户查询所有会员
+        if (currentStoreId != null) {
+            return memberRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
+        } else {
+            return memberRepository.findByTenantId(currentTenantId);
+        }
     }
 
     // 根据ID获取当前租户和门店的会员

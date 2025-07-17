@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.PostConstruct;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 import com.example.smart_restaurant_management_backend.dto.RestaurantSetupRequest;
 import com.example.smart_restaurant_management_backend.enums.UserType;
 import com.example.smart_restaurant_management_backend.dto.OrderDetailDTO;
@@ -95,28 +96,97 @@ public class UserService {
         try {
             // 按照外键依赖顺序删除数据
             Long tenantIdLong = Long.parseLong(tenantId);
-            
+
             // 1. 删除订单（依赖桌位和菜品）
             orderRepository.deleteByTenantId(tenantIdLong);
-            
+
             // 2. 删除交易记录
             transactionRepository.deleteByTenantId(tenantIdLong);
-            
+
             // 3. 删除桌位
             tableRepository.deleteByTenantId(tenantIdLong);
-            
+
             // 4. 删除菜品
             dishRepository.deleteByTenantId(tenantIdLong);
-            
+
             // 5. 删除会员
             memberRepository.deleteByTenantId(tenantIdLong);
-            
-            // 6. 最后删除用户
-            userRepository.delete(user);
-            
+
+            // 6. 删除该租户下的所有用户（包括当前用户）
+            userRepository.deleteByTenantId(tenantIdLong);
+
+            // 7. 删除该租户下的所有店铺
+            storeRepository.deleteByTenantId(tenantIdLong);
+
+            // 8. 最后删除租户
+            tenantRepository.deleteById(tenantIdLong);
+
             return true;
         } catch (Exception e) {
             throw new RuntimeException("删除账户失败: " + e.getMessage());
+        }
+    }
+
+    // 管理员删除租户（不需要密码验证）
+    @Transactional
+    public boolean deleteTenantByAdmin(Long tenantId) {
+        try {
+            // 检查租户是否存在
+            Optional<Tenant> tenantOpt = tenantRepository.findById(tenantId);
+            if (!tenantOpt.isPresent()) {
+                throw new RuntimeException("租户不存在");
+            }
+
+            Tenant tenant = tenantOpt.get();
+
+            // 防止删除系统租户
+            if ("SYSTEM".equals(tenant.getSubscriptionPlan()) || "系统租户".equals(tenant.getTenantName())) {
+                throw new RuntimeException("不能删除系统租户");
+            }
+
+            // 按照外键依赖顺序删除数据
+            // 1. 删除订单（依赖桌位和菜品）
+            orderRepository.deleteByTenantId(tenantId);
+
+            // 2. 删除交易记录
+            transactionRepository.deleteByTenantId(tenantId);
+
+            // 3. 删除桌位（引用店铺）
+            tableRepository.deleteByTenantId(tenantId);
+
+            // 4. 删除菜品（引用店铺）
+            dishRepository.deleteByTenantId(tenantId);
+
+            // 5. 删除会员（引用店铺）
+            memberRepository.deleteByTenantId(tenantId);
+
+            // 6. 先将该租户下所有用户的 store_id 和 current_store_id 设置为 null
+            System.out.println("开始更新租户 " + tenantId + " 下用户的店铺引用...");
+            List<User> users = userRepository.findByTenantId(tenantId);
+            System.out.println("找到 " + users.size() + " 个用户需要更新");
+
+            if (!users.isEmpty()) {
+                userRepository.updateStoreIdsToNullByTenantId(tenantId);
+                System.out.println("用户店铺引用更新完成");
+            }
+
+            // 7. 删除该租户下的所有店铺
+            List<Store> stores = storeRepository.findByTenant_Id(tenantId);
+            System.out.println("找到 " + stores.size() + " 个店铺需要删除");
+            for (Store store : stores) {
+                storeRepository.delete(store);
+            }
+            System.out.println("店铺删除完成");
+
+            // 8. 删除该租户下的所有用户
+            userRepository.deleteByTenantId(tenantId);
+
+            // 9. 最后删除租户
+            tenantRepository.deleteById(tenantId);
+
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException("删除租户失败: " + e.getMessage());
         }
     }
 
@@ -325,6 +395,8 @@ public class UserService {
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setRestaurantName(user.getRestaurantName());
         dto.setSetupCompleted(user.getSetupCompleted());
+        dto.setStoreMode(user.getStoreMode());
+        dto.setCurrentStoreId(user.getCurrentStoreId());
         dto.setThemeSettings(user.getThemeSettings());
         dto.setUserType(user.getUserType().name());
         return dto;
@@ -341,19 +413,47 @@ public class UserService {
         Optional<User> userOpt = userRepository.findFirstByTenantId(Long.parseLong(tenantId));
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-            
+
             // 更新店铺信息
             user.setRestaurantName(shopSetupDTO.getShopName());
             user.setSetupCompleted(true);
-            
-            // 保存用户信息
-            User savedUser = userRepository.save(user);
-            
+
+            // 设置店铺模式
+            if (shopSetupDTO.getMode() != null) {
+                user.setStoreMode(shopSetupDTO.getMode());
+            }
+
+            // 保存品牌名称到租户表
+            if (shopSetupDTO.getBrandName() != null && !shopSetupDTO.getBrandName().trim().isEmpty()) {
+                Optional<Tenant> tenantOpt = tenantRepository.findById(Long.parseLong(tenantId));
+                if (tenantOpt.isPresent()) {
+                    Tenant tenant = tenantOpt.get();
+                    tenant.setTenantName(shopSetupDTO.getBrandName());
+                    tenantRepository.save(tenant);
+                }
+            }
+
+            // 更新默认店铺的名称，并确保用户当前店铺设置为默认店铺
+            if (shopSetupDTO.getShopName() != null && !shopSetupDTO.getShopName().trim().isEmpty()) {
+                Optional<Store> defaultStoreOpt = storeRepository.findByTenant_IdAndIsDefaultTrue(Long.parseLong(tenantId));
+                if (defaultStoreOpt.isPresent()) {
+                    Store defaultStore = defaultStoreOpt.get();
+                    defaultStore.setStoreName(shopSetupDTO.getShopName());
+                    storeRepository.save(defaultStore);
+
+                    // 确保用户的当前店铺设置为默认店铺
+                    user.setCurrentStoreId(defaultStore.getId());
+                    user.setStoreId(defaultStore.getId()); // 同时更新主店铺ID
+                }
+            }
+
             // 创建桌位
             if (shopSetupDTO.getTableCount() != null && shopSetupDTO.getTableCount() > 0) {
                 createInitialTables(tenantId, shopSetupDTO.getTableCount());
             }
-            
+
+            // 最后保存用户信息（包含更新的店铺设置）
+            User savedUser = userRepository.save(user);
             return convertToDTO(savedUser);
         }
         return null;

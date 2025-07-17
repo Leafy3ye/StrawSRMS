@@ -91,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../../store/user'
 import api from '../../utils/api'
@@ -263,17 +263,47 @@ const resetTheme = () => {
 
 // 加载用户主题设置
 const loadUserTheme = () => {
+  console.log('加载用户主题设置...', userStore.user?.themeSettings)
+
   if (userStore.user?.themeSettings) {
-    const settings = userStore.user.themeSettings
-    currentTheme.navbar = settings.navbarTheme || 'default'
-    currentTheme.background = 'light' // 固定为默认白色背景
-    // 应用主题时也固定使用白色背景
-    applyGlobalTheme({
-      navbarTheme: settings.navbarTheme || 'default',
-      backgroundTheme: 'light'
-    })
+    try {
+      // 处理字符串格式的主题设置
+      const settings = typeof userStore.user.themeSettings === 'string'
+        ? JSON.parse(userStore.user.themeSettings)
+        : userStore.user.themeSettings
+
+      console.log('解析后的主题设置:', settings)
+
+      currentTheme.navbar = settings.navbarTheme || 'default'
+      currentTheme.background = 'light' // 固定为默认白色背景
+
+      // 应用主题时也固定使用白色背景
+      applyGlobalTheme({
+        navbarTheme: settings.navbarTheme || 'default',
+        backgroundTheme: 'light'
+      })
+
+      console.log('当前主题设置为:', currentTheme)
+    } catch (error) {
+      console.error('解析主题设置失败:', error)
+      // 如果解析失败，使用默认主题
+      currentTheme.navbar = 'default'
+      currentTheme.background = 'light'
+    }
+  } else {
+    console.log('没有找到用户主题设置，使用默认主题')
+    currentTheme.navbar = 'default'
+    currentTheme.background = 'light'
   }
 }
+
+// 监听用户数据变化
+watch(() => userStore.user, (newUser) => {
+  if (newUser) {
+    console.log('用户数据更新，重新加载主题设置')
+    loadUserTheme()
+  }
+}, { immediate: true })
 
 onMounted(() => {
   loadUserTheme()

@@ -51,4 +51,11 @@ public class TransactionService {
         BigDecimal result = transactionRepository.sumTodayRevenueByTenantIdAndStoreId(currentTenantId, currentStoreId);
         return result != null ? result : BigDecimal.ZERO;
     }
+
+    public Transaction findById(Long id) {
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        return transactionRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId)
+                .orElse(null);
+    }
 }

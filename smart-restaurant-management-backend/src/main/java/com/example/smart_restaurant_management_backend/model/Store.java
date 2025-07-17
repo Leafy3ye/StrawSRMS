@@ -43,6 +43,7 @@ public class Store {
     private Tenant tenant;
     
     // 一对多关联到用户
+    @JsonIgnore
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<User> users;
     

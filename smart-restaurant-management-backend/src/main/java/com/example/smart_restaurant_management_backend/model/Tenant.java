@@ -3,6 +3,7 @@ package com.example.smart_restaurant_management_backend.model;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "tenants")
@@ -32,7 +33,7 @@ public class Tenant {
     
     @Column(name = "subscription_plan", length = 50)
     private String subscriptionPlan = "BASIC";
-    
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
@@ -40,9 +41,11 @@ public class Tenant {
     private LocalDateTime updatedAt;
     
     // 一对多关联
+    @JsonIgnore
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Store> stores;
-    
+
+    @JsonIgnore
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<User> users;
     
@@ -75,7 +78,7 @@ public class Tenant {
     
     public String getSubscriptionPlan() { return subscriptionPlan; }
     public void setSubscriptionPlan(String subscriptionPlan) { this.subscriptionPlan = subscriptionPlan; }
-    
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     

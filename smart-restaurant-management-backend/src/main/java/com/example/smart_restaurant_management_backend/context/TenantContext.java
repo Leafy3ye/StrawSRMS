@@ -4,6 +4,7 @@ public class TenantContext {
     private static final ThreadLocal<Long> currentTenantId = new ThreadLocal<>();
     private static final ThreadLocal<Long> currentStoreId = new ThreadLocal<>();
     private static final ThreadLocal<String> currentUserUuid = new ThreadLocal<>();
+    private static final ThreadLocal<Boolean> isSuperAdmin = new ThreadLocal<>();
     
     // 租户ID相关方法
     public static void setCurrentTenantId(Long tenantId) {
@@ -32,11 +33,21 @@ public class TenantContext {
         return currentUserUuid.get();
     }
     
+    // 超级管理员相关方法
+    public static void setIsSuperAdmin(Boolean superAdmin) {
+        isSuperAdmin.set(superAdmin);
+    }
+
+    public static Boolean getIsSuperAdmin() {
+        return isSuperAdmin.get();
+    }
+
     // 清理方法
     public static void clear() {
         currentTenantId.remove();
         currentStoreId.remove();
         currentUserUuid.remove();
+        isSuperAdmin.remove();
     }
     
     // 兼容性方法（保持与现有代码的兼容）

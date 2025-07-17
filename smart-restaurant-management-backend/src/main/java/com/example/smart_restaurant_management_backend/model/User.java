@@ -2,6 +2,7 @@ package com.example.smart_restaurant_management_backend.model;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.example.smart_restaurant_management_backend.enums.UserType;
 
 @Entity
@@ -45,7 +46,13 @@ public class User {
     
     @Column(name = "setup_completed", nullable = false)
     private Boolean setupCompleted = false;
-    
+
+    @Column(name = "store_mode", length = 20)
+    private String storeMode; // "single" 或 "multi"
+
+    @Column(name = "current_store_id")
+    private Long currentStoreId; // 用户当前选择的店铺ID
+
     @Column(name = "theme_settings", columnDefinition = "TEXT")
     private String themeSettings;
     
@@ -66,10 +73,12 @@ public class User {
     private LocalDateTime updatedAt;
     
     // 多对一关联
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tenant_id", insertable = false, updatable = false)
     private Tenant tenant;
-    
+
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)
     private Store store;
@@ -146,4 +155,10 @@ public class User {
     
     public String getRestaurantPhone() { return restaurantPhone; }
     public void setRestaurantPhone(String restaurantPhone) { this.restaurantPhone = restaurantPhone; }
+
+    public String getStoreMode() { return storeMode; }
+    public void setStoreMode(String storeMode) { this.storeMode = storeMode; }
+
+    public Long getCurrentStoreId() { return currentStoreId; }
+    public void setCurrentStoreId(Long currentStoreId) { this.currentStoreId = currentStoreId; }
 }

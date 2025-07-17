@@ -49,7 +49,12 @@ export const useUserStore = defineStore('user', {
         
         // 登录成功后立即应用主题设置
         this.applyUserTheme();
-        
+
+        // 触发租户信息更新
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('tenant-updated'));
+        }, 100);
+
         return { success: true, isSuperAdmin: user.userType === 'SUPER_ADMIN' };
       } catch (error) {
         throw new Error(error.response?.data?.error || '登录失败');
@@ -117,9 +122,9 @@ export const useUserStore = defineStore('user', {
       this.user = null;
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
-      // 重置主题到默认状态
-      this.resetThemeToDefault();
+
+      // 不在这里立即重置主题，而是在路由跳转后重置
+      // this.resetThemeToDefault();
     },
     
     // 添加重置主题的方法

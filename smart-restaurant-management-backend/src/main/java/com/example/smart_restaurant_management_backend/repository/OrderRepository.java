@@ -28,11 +28,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByTenantIdAndTableIdAndCompletedFalse(String tenantId, Long tableId);
     
     List<Order> findByTenantIdAndStoreId(Long tenantId, Long storeId);
+    List<Order> findByTenantIdAndStoreIdAndCompletedTrue(Long tenantId, Long storeId);
     Optional<Order> findByIdAndTenantIdAndStoreId(Long id, Long tenantId, Long storeId);
+
+    // 添加只按租户ID查询的方法（用于超级管理员查看租户所有订单）
+    List<Order> findByTenantId(Long tenantId);
+    Optional<Order> findByIdAndTenantId(Long id, Long tenantId);
     
     // 时间范围查询
     List<Order> findByTenantIdAndStoreIdAndCreatedAtBetween(
         Long tenantId, Long storeId, LocalDateTime startTime, LocalDateTime endTime);
+
+    // 查询指定时间范围内的已完成订单
+    List<Order> findByTenantIdAndStoreIdAndCompletedTrueAndCreatedAtBetween(
+        Long tenantId, Long storeId, LocalDateTime startTime, LocalDateTime endTime);
+
+    // 查询指定桌位在指定时间范围内的已完成订单
+    List<Order> findByTenantIdAndStoreIdAndTableIdAndCompletedTrueAndCreatedAtBetween(
+        Long tenantId, Long storeId, Long tableId, LocalDateTime startTime, LocalDateTime endTime);
 
     // 统计查询
     @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.storeId = :storeId AND o.createdAt >= :startTime AND o.createdAt < :endTime")

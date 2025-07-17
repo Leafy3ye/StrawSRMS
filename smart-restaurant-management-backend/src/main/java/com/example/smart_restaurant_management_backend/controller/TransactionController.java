@@ -47,4 +47,40 @@ public class TransactionController {
         stats.put("totalRevenue", orderService.getTotalRevenue());
         return stats;
     }
+
+    @GetMapping("/{id}/details")
+    public Map<String, Object> getTransactionDetails(@PathVariable Long id) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            // 获取交易记录
+            Transaction transaction = transactionService.findById(id);
+            if (transaction == null) {
+                result.put("error", "交易记录不存在");
+                return result;
+            }
+
+            // 构建交易详情
+            Map<String, Object> transactionInfo = new HashMap<>();
+            transactionInfo.put("id", transaction.getId());
+            transactionInfo.put("tableId", transaction.getTableId());
+            transactionInfo.put("tableName", transaction.getTableName());
+            transactionInfo.put("totalAmount", transaction.getTotalAmount());
+            transactionInfo.put("orderCount", transaction.getOrderCount());
+            transactionInfo.put("createdAt", transaction.getCreatedAt());
+
+            // 获取对应的已完成订单详情
+            List<Map<String, Object>> orderDetails = orderService.getCompletedOrdersByTableAndTime(
+                transaction.getTableId(),
+                transaction.getCreatedAt()
+            );
+
+            result.put("transaction", transactionInfo);
+            result.put("orders", orderDetails);
+
+            return result;
+        } catch (Exception e) {
+            result.put("error", "获取交易详情失败: " + e.getMessage());
+            return result;
+        }
+    }
 }

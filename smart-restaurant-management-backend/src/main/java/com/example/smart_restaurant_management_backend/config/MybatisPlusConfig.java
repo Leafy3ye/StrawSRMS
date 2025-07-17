@@ -27,18 +27,36 @@ public class MybatisPlusConfig {
                 if (tenantId != null) {
                     return new LongValue(tenantId);
                 }
-                return new LongValue(-1); // 默认值，确保查询不到数据
+
+                // 检查是否为超级管理员
+                Boolean isSuperAdmin = TenantContext.getIsSuperAdmin();
+                if (Boolean.TRUE.equals(isSuperAdmin)) {
+                    // 超级管理员没有指定租户ID时，返回一个特殊值来跳过租户过滤
+                    return new LongValue(0); // 使用0作为特殊值，表示查看所有数据
+                } else {
+                    // 普通用户：必须有租户ID
+                    return new LongValue(-1); // 默认值，确保查询不到数据
+                }
             }
-            
+
             @Override
             public String getTenantIdColumn() {
                 return "tenant_id"; // 租户字段名
             }
-            
+
             @Override
             public boolean ignoreTable(String tableName) {
+                // 检查是否为超级管理员且没有指定租户ID
+                Boolean isSuperAdmin = TenantContext.getIsSuperAdmin();
+                Long tenantId = TenantContext.getCurrentTenantId();
+
+                if (Boolean.TRUE.equals(isSuperAdmin) && tenantId == null) {
+                    // 超级管理员查看所有数据时，忽略所有表的租户过滤
+                    return true;
+                }
+
                 // 忽略不需要租户隔离的表
-                return "tenants".equals(tableName) || 
+                return "tenants".equals(tableName) ||
                        "system_config".equals(tableName) ||
                        "flyway_schema_history".equals(tableName);
             }

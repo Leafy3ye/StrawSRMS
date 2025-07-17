@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from "vue";
+import { reactive, ref, onMounted } from "vue";
 import { useUserStore } from "../store/user";
 import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
@@ -139,6 +139,12 @@ const goToRegister = () => {
 const goToForgotPassword = () => {
   router.push("/forgot-password");
 };
+
+// 页面加载时确保主题是默认状态
+onMounted(() => {
+  // 确保登录页面使用默认主题
+  userStore.resetThemeToDefault();
+});
 </script>
 
 <style scoped>

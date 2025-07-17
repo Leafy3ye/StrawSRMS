@@ -24,10 +24,17 @@ public class DishService {
     public List<Dish> getAllDishes() {
         Long currentTenantId = TenantContext.getCurrentTenantId();
         Long currentStoreId = TenantContext.getCurrentStoreId();
-        if (currentTenantId == null || currentStoreId == null) {
-            throw new RuntimeException("未找到当前租户或门店信息");
+
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
         }
-        return dishRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
+
+        // 如果有店铺ID，按租户和店铺查询；否则按租户查询所有菜品
+        if (currentStoreId != null) {
+            return dishRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
+        } else {
+            return dishRepository.findByTenantId(currentTenantId);
+        }
     }
 
     // 根据ID查找当前租户和门店的菜品

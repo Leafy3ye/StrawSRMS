@@ -19,6 +19,11 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     Optional<Member> findByTenantIdAndStoreIdAndPhone(Long tenantId, Long storeId, String phone);
     Optional<Member> findByTenantIdAndStoreIdAndEmail(Long tenantId, Long storeId, String email);
 
+    // 添加只按租户ID查询的方法（用于超级管理员查看租户所有会员）
+    List<Member> findByTenantId(Long tenantId);
+    Optional<Member> findByIdAndTenantId(Long id, Long tenantId);
+    List<Member> findByTenantIdAndNameContaining(Long tenantId, String keyword);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM Member m WHERE m.tenantId = :tenantId")
