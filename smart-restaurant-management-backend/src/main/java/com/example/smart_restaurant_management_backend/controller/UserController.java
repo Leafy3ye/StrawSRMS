@@ -277,19 +277,19 @@ public class UserController {
     @GetMapping("/theme-settings")
     public ResponseEntity<?> getThemeSettings() {
         try {
-            Long currentTenantId = TenantContext.getCurrentTenantId();  // 修复：使用getCurrentTenantId()替代getCurrentTenantUuid()
-            if (currentTenantId == null) {
-                return ResponseEntity.badRequest().body("未找到当前租户信息");
+            String currentUserUuid = TenantContext.getCurrentUserUuid();
+            if (currentUserUuid == null) {
+                return ResponseEntity.badRequest().body("未找到当前用户信息");
             }
-            
-            UserDTO user = userService.getUserByTenantId(currentTenantId.toString());  // 转换为String
+
+            UserDTO user = userService.getUserByUuid(currentUserUuid);
             if (user != null) {
                 // 返回主题设置，如果为空则返回空对象
                 String themeSettings = user.getThemeSettings();
                 if (themeSettings == null || themeSettings.isEmpty()) {
                     return ResponseEntity.ok(new HashMap<>());
                 }
-                
+
                 // 解析JSON字符串并返回
                 ObjectMapper objectMapper = new ObjectMapper();
                 Map<String, Object> themeMap = objectMapper.readValue(themeSettings, Map.class);
@@ -306,17 +306,17 @@ public class UserController {
     @PutMapping("/theme-settings")
     public ResponseEntity<?> updateThemeSettings(@RequestBody Map<String, String> request) {
         try {
-            Long currentTenantId = TenantContext.getCurrentTenantId();  // 修复：使用getCurrentTenantId()替代getCurrentTenantUuid()
-            if (currentTenantId == null) {
-                return ResponseEntity.badRequest().body("未找到当前租户信息");
+            String currentUserUuid = TenantContext.getCurrentUserUuid();
+            if (currentUserUuid == null) {
+                return ResponseEntity.badRequest().body("未找到当前用户信息");
             }
-            
+
             // 将主题设置转换为JSON字符串
             ObjectMapper objectMapper = new ObjectMapper();
             String themeSettingsJson = objectMapper.writeValueAsString(request);
-            
-            UserDTO updatedUser = userService.updateThemeSettings(currentTenantId.toString(), themeSettingsJson);  // 转换为String
-            
+
+            UserDTO updatedUser = userService.updateThemeSettingsByUuid(currentUserUuid, themeSettingsJson);
+
             if (updatedUser != null) {
                 return ResponseEntity.ok(updatedUser);
             } else {
@@ -324,6 +324,44 @@ public class UserController {
             }
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("更新主题设置失败: " + e.getMessage());
+        }
+    }
+
+    // 员工注册（由店长创建）
+    @PostMapping("/register-employee")
+    public ResponseEntity<?> registerEmployee(@RequestBody EmployeeRegisterDTO employeeRegisterDTO) {
+        try {
+            UserDTO employee = userService.registerEmployee(employeeRegisterDTO);
+            return ResponseEntity.ok(employee);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("员工注册失败: " + e.getMessage());
+        }
+    }
+
+    // 获取当前租户下的所有员工
+    @GetMapping("/employees")
+    public ResponseEntity<?> getEmployees() {
+        try {
+            Long currentTenantId = TenantContext.getCurrentTenantId();
+            if (currentTenantId == null) {
+                return ResponseEntity.badRequest().body("未找到当前租户信息");
+            }
+
+            List<UserDTO> employees = userService.getEmployeesByTenantId(currentTenantId);
+            return ResponseEntity.ok(employees);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("获取员工列表失败: " + e.getMessage());
+        }
+    }
+
+    // 删除员工
+    @DeleteMapping("/employees/{employeeId}")
+    public ResponseEntity<?> deleteEmployee(@PathVariable Long employeeId) {
+        try {
+            userService.deleteEmployee(employeeId);
+            return ResponseEntity.ok("员工删除成功");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("删除员工失败: " + e.getMessage());
         }
     }
 }

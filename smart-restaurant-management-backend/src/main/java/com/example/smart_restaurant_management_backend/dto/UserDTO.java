@@ -1,5 +1,7 @@
 package com.example.smart_restaurant_management_backend.dto;
 
+import java.time.LocalDateTime;
+
 public class UserDTO {
     private Long id;
     private Long tenantId;
@@ -14,8 +16,10 @@ public class UserDTO {
     private Boolean setupCompleted;
     private String storeMode; // 店铺模式：single 或 multi
     private Long currentStoreId; // 用户当前选择的店铺ID
+    private String storeName; // 当前店铺名称（员工专用）
     private String themeSettings;
     private String userType; // 添加用户类型字段
+    private LocalDateTime createdAt; // 添加创建时间字段
 
     // 不包含密码，用于返回给前端
     
@@ -130,12 +134,28 @@ public class UserDTO {
     public void setThemeSettings(String themeSettings) {
         this.themeSettings = themeSettings;
     }
-    
+
+    public String getStoreName() {
+        return storeName;
+    }
+
+    public void setStoreName(String storeName) {
+        this.storeName = storeName;
+    }
+
     public String getUserType() {
         return userType;
     }
-    
+
     public void setUserType(String userType) {
         this.userType = userType;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

@@ -139,6 +139,9 @@ public class User {
     
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    // 仅用于测试目的的 setter 方法
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     
     public Tenant getTenant() { return tenant; }
     public void setTenant(Tenant tenant) { this.tenant = tenant; }

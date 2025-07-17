@@ -68,11 +68,18 @@ public class TransactionController {
             transactionInfo.put("orderCount", transaction.getOrderCount());
             transactionInfo.put("createdAt", transaction.getCreatedAt());
 
-            // 获取对应的已完成订单详情
-            List<Map<String, Object>> orderDetails = orderService.getCompletedOrdersByTableAndTime(
-                transaction.getTableId(),
-                transaction.getCreatedAt()
+            // 获取对应的订单详情（基于交易ID）
+            List<Map<String, Object>> orderDetails = orderService.getOrdersByTransactionId(
+                transaction.getId()
             );
+
+            // 如果基于交易ID没有找到订单（兼容旧数据），则使用时间范围查询
+            if (orderDetails.isEmpty()) {
+                orderDetails = orderService.getCompletedOrdersByTableAndTime(
+                    transaction.getTableId(),
+                    transaction.getCreatedAt()
+                );
+            }
 
             result.put("transaction", transactionInfo);
             result.put("orders", orderDetails);

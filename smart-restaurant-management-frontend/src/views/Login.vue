@@ -10,6 +10,13 @@
       <h2 class="login-title">StrawSRMS</h2>
       <p class="login-subtitle">智慧餐饮综合管理系统</p>
 
+      <!-- 登录类型提示 -->
+      <div class="login-type-indicator">
+        <span class="login-type-text">
+          {{ loginType === 'EMPLOYEE' ? '员工登录' : '普通登录' }}
+        </span>
+      </div>
+
       <!-- 登录表单 -->
       <el-form :model="form" label-width="0" ref="loginForm" class="login-form" :rules="rules">
         <!-- 用户名输入框 -->
@@ -57,15 +64,42 @@
           </el-button>
         </el-form-item>
         
-        <!-- 注册入口 -->
-        <el-form-item>
+        <!-- 注册入口 - 仅普通登录时显示 -->
+        <el-form-item v-if="loginType === 'TENANT'">
           <div class="register-link">
             <span class="register-text">还没有账号？</span>
             <el-link type="primary" @click="goToRegister">点击注册！</el-link>
           </div>
         </el-form-item>
-        
-        <!-- 忘记密码入口 -->
+
+        <!-- 员工注册提示 - 仅员工登录时显示 -->
+        <el-form-item v-if="loginType === 'EMPLOYEE'">
+          <div class="employee-register-tip">
+            <span class="tip-text">如需注册店员账号，请联系店长注册</span>
+          </div>
+        </el-form-item>
+
+        <!-- 登录类型切换链接 -->
+        <el-form-item>
+          <div class="switch-login-link">
+            <el-link
+              v-if="loginType === 'TENANT'"
+              type="primary"
+              @click="switchToEmployeeLogin"
+            >
+              切换为员工登录
+            </el-link>
+            <el-link
+              v-else
+              type="primary"
+              @click="switchToTenantLogin"
+            >
+              切换为普通登录
+            </el-link>
+          </div>
+        </el-form-item>
+
+        <!-- 忘记密码链接 -->
         <el-form-item>
           <div class="forgot-password-link">
             <el-link type="info" @click="goToForgotPassword">忘记密码？</el-link>
@@ -87,6 +121,7 @@ import logoUrl from '../assets/logo.jpg';
 const userStore = useUserStore();
 const router = useRouter();
 const loading = ref(false);
+const loginType = ref('TENANT'); // 默认普通登录
 
 const form = reactive({
   username: "",
@@ -107,8 +142,9 @@ const onLogin = () => {
       loading.value = true;
       try {
         const result = await userStore.login({
-          username: form.username,  // 修复：使用正确的变量
-          password: form.password   // 修复：使用正确的变量
+          username: form.username,
+          password: form.password,
+          userType: loginType.value  // 添加用户类型
         });
         
         if (result.success) {
@@ -138,6 +174,16 @@ const goToRegister = () => {
 // 跳转到找回密码页面
 const goToForgotPassword = () => {
   router.push("/forgot-password");
+};
+
+// 切换到员工登录
+const switchToEmployeeLogin = () => {
+  loginType.value = 'EMPLOYEE';
+};
+
+// 切换到普通登录
+const switchToTenantLogin = () => {
+  loginType.value = 'TENANT';
 };
 
 // 页面加载时确保主题是默认状态
@@ -197,6 +243,8 @@ onMounted(() => {
   margin-top: 0;
 }
 
+
+
 /* 登录表单 */
 .login-form {
   margin-top: 20px;
@@ -219,9 +267,66 @@ onMounted(() => {
   margin-right: 5px;
 }
 
-/* 忘记密码链接样式 */
-.forgot-password-link {
+/* 登录类型指示器 */
+.login-type-indicator {
   text-align: center;
+  margin-bottom: 20px;
+}
+
+.login-type-text {
+  color: #409EFF;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* 员工注册提示样式 */
+.employee-register-tip {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.tip-text {
+  color: #909399;
+  font-size: 14px;
+}
+
+/* 切换登录类型链接 */
+.switch-login-link {
+  text-align: left;
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+
+.switch-login-link .el-link {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap; /* 防止换行 */
+}
+
+/* 忘记密码链接 */
+.forgot-password-link {
+  text-align: right;
   margin-top: 5px;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  width: 100%;
+}
+
+.forgot-password-link .el-link {
+  font-size: 14px;
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+  float: right;
+}
+
+/* 确保忘记密码的表单项没有多余边距 */
+.login-form .el-form-item:last-child {
+  margin-bottom: 0;
+  padding-right: 0 !important;
+}
+
+.login-form .el-form-item:last-child .el-form-item__content {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
 }
 </style>

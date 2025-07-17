@@ -43,21 +43,44 @@ const routes = [
           }
         ]
       },
-      
+
+      // 店铺管理路由（仅连锁店店长可见）
+      {
+        path: 'store-management',
+        name: 'StoreManagementParent',
+        children: [
+          {
+            path: 'brand',
+            name: 'BrandSettings',
+            component: () => import('../views/store-management/BrandSettings.vue')
+          },
+          {
+            path: 'stores',
+            name: 'StoreManagement',
+            component: () => import('../views/store-management/StoreManagement.vue')
+          },
+          {
+            path: 'employees',
+            name: 'EmployeeRegister',
+            component: () => import('../views/store-management/EmployeeRegister.vue')
+          }
+        ]
+      },
+
       // 系统设置路由（移除邮箱设置）
-      { 
-        path: 'settings', 
+      {
+        path: 'settings',
         name: 'Settings',
         children: [
-          { 
-            path: 'shop', 
-            name: 'ShopSettings', 
-            component: () => import('../views/settings/ShopSettings.vue') 
+          {
+            path: 'shop',
+            name: 'ShopSettings',
+            component: () => import('../views/settings/ShopSettings.vue')
           },
-          { 
-            path: 'theme', 
-            name: 'ThemeSettings', 
-            component: () => import('../views/settings/ThemeSettings.vue') 
+          {
+            path: 'theme',
+            name: 'ThemeSettings',
+            component: () => import('../views/settings/ThemeSettings.vue')
           }
         ]
       }
@@ -115,6 +138,22 @@ router.beforeEach((to, from, next) => {
       }
       if (userStore.user.userType !== 'SUPER_ADMIN') {
         next("/"); // 非超级管理员重定向到普通页面
+        return;
+      }
+    }
+
+    // 检查员工权限限制
+    if (userStore.user && userStore.user.userType === 'EMPLOYEE') {
+      // 员工不能访问的页面
+      const employeeRestrictedRoutes = [
+        '/settings/shop',
+        '/store-management/brand',
+        '/store-management/stores',
+        '/store-management/employees'
+      ];
+
+      if (employeeRestrictedRoutes.includes(to.path)) {
+        next("/"); // 员工访问受限页面时重定向到首页
         return;
       }
     }

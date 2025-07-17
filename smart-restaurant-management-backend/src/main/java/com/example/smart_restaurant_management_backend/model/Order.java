@@ -45,7 +45,11 @@ public class Order {
 
     @Column(name = "prepared")
     private Boolean prepared = false;
-    
+
+    // 添加交易ID字段，用于关联订单和交易
+    @Column(name = "transaction_id")
+    private Long transactionId;
+
     // JPA关联关系
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
@@ -56,6 +60,11 @@ public class Order {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", insertable = false, updatable = false)
     private Store store;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction_id", insertable = false, updatable = false)
+    private Transaction transaction;
 
     @PrePersist
     protected void onCreate() {
@@ -94,10 +103,16 @@ public class Order {
     
     public Boolean getPrepared() { return prepared; }
     public void setPrepared(Boolean prepared) { this.prepared = prepared; }
-    
+
+    public Long getTransactionId() { return transactionId; }
+    public void setTransactionId(Long transactionId) { this.transactionId = transactionId; }
+
     public Tenant getTenant() { return tenant; }
     public void setTenant(Tenant tenant) { this.tenant = tenant; }
-    
+
     public Store getStore() { return store; }
     public void setStore(Store store) { this.store = store; }
+
+    public Transaction getTransaction() { return transaction; }
+    public void setTransaction(Transaction transaction) { this.transaction = transaction; }
 }

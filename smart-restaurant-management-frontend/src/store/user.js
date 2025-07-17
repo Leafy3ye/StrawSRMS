@@ -12,8 +12,10 @@ export const useUserStore = defineStore('user', {
     isLoggedIn: (state) => !!state.token && !!state.user,
     shopName: (state) => state.user?.restaurantName || '智慧餐饮解决方案',
     needsSetup: (state) => state.user && !state.user.setupCompleted,
-    // 添加超级管理员判断
-    isSuperAdmin: (state) => state.user?.userType === 'SUPER_ADMIN'
+    // 添加用户类型判断
+    isSuperAdmin: (state) => state.user?.userType === 'SUPER_ADMIN',
+    isTenant: (state) => state.user?.userType === 'TENANT',
+    isEmployee: (state) => state.user?.userType === 'EMPLOYEE'
   },
 
   actions: {

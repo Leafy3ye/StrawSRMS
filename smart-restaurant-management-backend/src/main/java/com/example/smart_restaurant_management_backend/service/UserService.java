@@ -6,6 +6,7 @@ import com.example.smart_restaurant_management_backend.dto.UserDTO;
 import com.example.smart_restaurant_management_backend.dto.ShopSetupDTO;
 import com.example.smart_restaurant_management_backend.dto.DeleteAccountDTO;
 import com.example.smart_restaurant_management_backend.dto.PasswordResetDTO;
+import com.example.smart_restaurant_management_backend.dto.EmployeeRegisterDTO;
 import com.example.smart_restaurant_management_backend.model.User;
 import com.example.smart_restaurant_management_backend.repository.UserRepository;
 import com.example.smart_restaurant_management_backend.repository.TableRepository;
@@ -18,6 +19,7 @@ import com.example.smart_restaurant_management_backend.repository.TenantReposito
 // 添加以下两行缺失的导入
 import com.example.smart_restaurant_management_backend.model.Tenant;
 import com.example.smart_restaurant_management_backend.model.Store;
+import com.example.smart_restaurant_management_backend.context.TenantContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -242,14 +244,31 @@ public class UserService {
     // 用户登录
     public UserDTO login(LoginRequestDTO loginRequest) {
         Optional<User> userOpt = userRepository.findByUsername(loginRequest.getUsername());
-        
+
         if (userOpt.isPresent()) {
             User user = userOpt.get();
+
+            // 验证密码
             if (passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+                // 验证用户类型
+                if (loginRequest.getUserType() != null) {
+                    UserType requestedType = UserType.valueOf(loginRequest.getUserType());
+
+                    // 特殊处理：超级管理员可以通过普通登录方式登录
+                    if (user.getUserType() == UserType.SUPER_ADMIN && requestedType == UserType.TENANT) {
+                        return convertToDTO(user);
+                    }
+
+                    // 其他情况需要严格匹配用户类型
+                    if (!user.getUserType().equals(requestedType)) {
+                        throw new RuntimeException("用户类型不匹配，请选择正确的登录方式");
+                    }
+                }
+
                 return convertToDTO(user);
             }
         }
-        
+
         return null; // 登录失败
     }
 
@@ -399,6 +418,16 @@ public class UserService {
         dto.setCurrentStoreId(user.getCurrentStoreId());
         dto.setThemeSettings(user.getThemeSettings());
         dto.setUserType(user.getUserType().name());
+        dto.setCreatedAt(user.getCreatedAt()); // 添加创建时间映射
+
+        // 如果是员工，设置店铺名称
+        if (user.getUserType() == UserType.EMPLOYEE && user.getStoreId() != null) {
+            Optional<Store> storeOpt = storeRepository.findById(user.getStoreId());
+            if (storeOpt.isPresent()) {
+                dto.setStoreName(storeOpt.get().getStoreName());
+            }
+        }
+
         return dto;
     }
 
@@ -589,7 +618,7 @@ public class UserService {
     }
     
     /**
-     * 更新主题设置
+     * 更新主题设置（基于租户ID，保留兼容性）
      * @param tenantId 租户ID
      * @param themeSettingsJson 主题设置JSON字符串
      * @return 更新后的用户DTO
@@ -607,6 +636,23 @@ public class UserService {
     }
 
     /**
+     * 更新主题设置（基于用户UUID）
+     * @param userUuid 用户UUID
+     * @param themeSettingsJson 主题设置JSON字符串
+     * @return 更新后的用户DTO
+     */
+    public UserDTO updateThemeSettingsByUuid(String userUuid, String themeSettingsJson) {
+        Optional<User> userOpt = userRepository.findByUuid(userUuid);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            user.setThemeSettings(themeSettingsJson);
+            User savedUser = userRepository.save(user);
+            return convertToDTO(savedUser);
+        }
+        return null;
+    }
+
+    /**
      * 根据租户ID获取用户信息
      * @param tenantId 租户ID
      * @return 用户DTO
@@ -614,5 +660,84 @@ public class UserService {
     public UserDTO getUserByTenantId(String tenantId) {
         Optional<User> userOpt = userRepository.findFirstByTenantId(Long.parseLong(tenantId));
         return userOpt.map(this::convertToDTO).orElse(null);
+    }
+
+    // 员工注册（由店长创建）
+    @Transactional
+    public UserDTO registerEmployee(EmployeeRegisterDTO employeeRegisterDTO) {
+        // 验证用户名、邮箱等是否已存在
+        if (userRepository.existsByUsername(employeeRegisterDTO.getUsername())) {
+            throw new RuntimeException("用户名已存在");
+        }
+
+        if (userRepository.existsByEmail(employeeRegisterDTO.getEmail())) {
+            throw new RuntimeException("邮箱已存在");
+        }
+
+        if (userRepository.existsByPhone(employeeRegisterDTO.getPhone())) {
+            throw new RuntimeException("手机号已存在");
+        }
+
+        // 获取当前租户ID
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+
+        // 验证店铺是否属于当前租户
+        Optional<Store> storeOpt = storeRepository.findByIdAndTenant_Id(employeeRegisterDTO.getStoreId(), currentTenantId);
+        if (!storeOpt.isPresent()) {
+            throw new RuntimeException("店铺不存在或无权限");
+        }
+
+        // 创建员工用户
+        User employee = new User();
+        employee.setUsername(employeeRegisterDTO.getUsername());
+        employee.setEmail(employeeRegisterDTO.getEmail());
+        employee.setPhone(employeeRegisterDTO.getPhone());
+        employee.setPassword(passwordEncoder.encode(employeeRegisterDTO.getPassword()));
+        employee.setUserType(UserType.EMPLOYEE);
+        employee.setTenantId(currentTenantId);
+        employee.setStoreId(employeeRegisterDTO.getStoreId());
+        employee.setCurrentStoreId(employeeRegisterDTO.getStoreId()); // 员工固定在指定店铺
+        employee.setSetupCompleted(true); // 员工账号无需初始化设置
+
+        User savedEmployee = userRepository.save(employee);
+        return convertToDTO(savedEmployee);
+    }
+
+    // 获取指定租户下的所有员工
+    public List<UserDTO> getEmployeesByTenantId(Long tenantId) {
+        List<User> employees = userRepository.findByTenantIdAndUserType(tenantId, UserType.EMPLOYEE);
+        return employees.stream()
+                .map(this::convertToDTO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    // 删除员工
+    @Transactional
+    public void deleteEmployee(Long employeeId) {
+        // 获取当前租户ID
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        if (currentTenantId == null) {
+            throw new RuntimeException("未找到当前租户信息");
+        }
+
+        // 验证员工是否属于当前租户
+        Optional<User> employeeOpt = userRepository.findById(employeeId);
+        if (!employeeOpt.isPresent()) {
+            throw new RuntimeException("员工不存在");
+        }
+
+        User employee = employeeOpt.get();
+        if (!employee.getTenantId().equals(currentTenantId)) {
+            throw new RuntimeException("无权限删除该员工");
+        }
+
+        if (!employee.getUserType().equals(UserType.EMPLOYEE)) {
+            throw new RuntimeException("只能删除员工账号");
+        }
+
+        userRepository.delete(employee);
     }
 }

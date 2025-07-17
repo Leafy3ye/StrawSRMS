@@ -217,13 +217,49 @@ public class OrderService {
         Transaction transaction = new Transaction(currentTenantId, currentStoreId, tableId, tableName, totalAmount, orders.size());
         Transaction savedTransaction = transactionService.save(transaction);
 
-        // 标记订单为已完成，而不是删除
+        // 标记订单为已完成，并设置交易ID
         for (Order order : orders) {
             order.setCompleted(true);
+            order.setTransactionId(savedTransaction.getId());
         }
         orderRepository.saveAll(orders);
 
         return savedTransaction;
+    }
+
+    // 根据交易ID获取订单详情
+    public List<Map<String, Object>> getOrdersByTransactionId(Long transactionId) {
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            throw new RuntimeException("未找到当前租户或店铺信息");
+        }
+
+        List<Order> orders = orderRepository.findByTransactionIdAndTenantIdAndStoreId(
+            transactionId, currentTenantId, currentStoreId);
+
+        return orders.stream().map(order -> {
+            Map<String, Object> orderInfo = new HashMap<>();
+            orderInfo.put("id", order.getId());
+            orderInfo.put("dishId", order.getDishId());
+            orderInfo.put("quantity", order.getQuantity());
+            orderInfo.put("price", order.getPrice());
+            orderInfo.put("remark", order.getRemark());
+            orderInfo.put("createdAt", order.getCreatedAt());
+
+            // 获取菜品信息
+            Optional<Dish> dish = dishRepository.findByIdAndTenantIdAndStoreId(
+                order.getDishId(), currentTenantId, currentStoreId);
+            if (dish.isPresent()) {
+                orderInfo.put("dishName", dish.get().getName());
+                orderInfo.put("dishPrice", dish.get().getPrice());
+            } else {
+                orderInfo.put("dishName", "未知菜品");
+                orderInfo.put("dishPrice", BigDecimal.ZERO);
+            }
+
+            return orderInfo;
+        }).collect(Collectors.toList());
     }
 
     // 根据桌位ID和时间获取已完成的订单详情

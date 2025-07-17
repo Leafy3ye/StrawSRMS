@@ -35,9 +35,30 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 删除方法
     void deleteByTenantId(Long tenantId);
 
+    // 删除指定租户和店铺下的所有员工（只删除员工，不删除店长）
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM User u WHERE u.tenantId = :tenantId AND u.storeId = :storeId AND u.userType = 'EMPLOYEE'")
+    void deleteByTenantIdAndStoreId(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+
     // 更新方法：将指定租户下所有用户的 store_id 和 current_store_id 设置为 null
     @Modifying
     @Transactional
     @Query(value = "UPDATE users SET store_id = NULL, current_store_id = NULL WHERE tenant_id = :tenantId", nativeQuery = true)
     void updateStoreIdsToNullByTenantId(@Param("tenantId") Long tenantId);
+
+    // 更新方法：将指定店铺下所有用户的 store_id 和 current_store_id 设置为 null
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE users SET store_id = NULL, current_store_id = NULL WHERE store_id = :storeId", nativeQuery = true)
+    void updateStoreIdsToNullByStoreId(@Param("storeId") Long storeId);
+
+    // 更新方法：将指定租户下指定店铺的非员工用户的 store_id 更新为新的店铺ID
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE users SET store_id = :newStoreId, current_store_id = :newStoreId WHERE tenant_id = :tenantId AND store_id = :oldStoreId AND user_type != 'EMPLOYEE'", nativeQuery = true)
+    void updateStoreIdForTenantUsers(@Param("tenantId") Long tenantId, @Param("oldStoreId") Long oldStoreId, @Param("newStoreId") Long newStoreId);
+
+    // 根据租户ID和用户类型查询用户
+    List<User> findByTenantIdAndUserType(Long tenantId, UserType userType);
 }

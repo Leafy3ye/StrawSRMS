@@ -28,9 +28,14 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
     @Transactional
     @Query("DELETE FROM Member m WHERE m.tenantId = :tenantId")
     void deleteByTenantId(@Param("tenantId") Long tenantId);
-    
+
     @Modifying
     @Transactional
     @Query("DELETE FROM Member m WHERE m.storeId = :storeId")
     void deleteByStoreId(@Param("storeId") Long storeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Member m WHERE m.tenantId = :tenantId AND m.storeId = :storeId")
+    void deleteByTenantIdAndStoreId(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }

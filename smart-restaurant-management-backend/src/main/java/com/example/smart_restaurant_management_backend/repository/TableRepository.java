@@ -37,9 +37,14 @@ public interface TableRepository extends JpaRepository<TableEntity, Long> {
     @Transactional
     @Query("DELETE FROM TableEntity t WHERE t.tenantId = :tenantId")
     void deleteByTenantId(@Param("tenantId") Long tenantId);
-    
+
     @Modifying
     @Transactional
     @Query("DELETE FROM TableEntity t WHERE t.storeId = :storeId")
     void deleteByStoreId(@Param("storeId") Long storeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM TableEntity t WHERE t.tenantId = :tenantId AND t.storeId = :storeId")
+    void deleteByTenantIdAndStoreId(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }

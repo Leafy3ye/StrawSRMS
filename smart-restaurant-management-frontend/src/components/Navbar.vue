@@ -12,7 +12,8 @@
         <div v-if="!isCollapsed" class="logo-info">
           <span class="logo-title" :style="{ color: currentNavbarTheme.text }">{{ tenantName || userStore.shopName || 'StrawSRMS' }}</span>
           <!-- 店铺切换下拉菜单 -->
-          <el-dropdown v-if="isMultiStoreMode && stores.length > 0" @command="switchStore" class="store-switcher">
+          <!-- 店铺切换 - 仅店长可见 -->
+          <el-dropdown v-if="isMultiStoreMode && stores.length > 0 && !userStore.isEmployee" @command="switchStore" class="store-switcher">
             <span class="store-name" :style="{ color: currentNavbarTheme.text }">
               {{ currentStoreName }}
               <el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -32,6 +33,11 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
+
+          <!-- 员工当前店铺显示 - 仅员工可见 -->
+          <span v-if="userStore.isEmployee && currentStoreName" class="employee-store-name" :style="{ color: currentNavbarTheme.text }">
+            {{ currentStoreName }}
+          </span>
         </div>
       </div>
 
@@ -169,6 +175,48 @@
         </div>
       </div>
 
+      <!-- 店铺管理下拉菜单 - 仅连锁店店长可见 -->
+      <div v-if="isMultiStoreMode && !userStore.isEmployee" class="submenu-container">
+        <div
+          class="menu-item submenu-title"
+          :class="{ active: activeMenu.startsWith('/store-management') }"
+          @click="toggleSubmenu('storeManagement')"
+        >
+          <el-icon class="menu-icon" :style="{ color: activeMenu.startsWith('/store-management') ? '#409EFF' : currentNavbarTheme.text }"><Shop /></el-icon>
+          <span v-if="!isCollapsed" class="menu-text" :style="{ color: activeMenu.startsWith('/store-management') ? '#409EFF' : currentNavbarTheme.text }">店铺管理</span>
+          <el-icon v-if="!isCollapsed" class="submenu-arrow" :class="{ expanded: expandedMenus.storeManagement }" :style="{ color: currentNavbarTheme.text }"><ArrowDown /></el-icon>
+          <el-tooltip v-if="isCollapsed" content="店铺管理" placement="right">
+            <div class="tooltip-trigger"></div>
+          </el-tooltip>
+        </div>
+        <div v-if="!isCollapsed && expandedMenus.storeManagement" class="submenu-items">
+          <div
+            class="submenu-item"
+            :class="{ active: activeMenu === '/store-management/brand' }"
+            @click="checkAuth('/store-management/brand')"
+          >
+            <el-icon class="submenu-icon" :style="{ color: activeMenu === '/store-management/brand' ? '#409EFF' : currentNavbarTheme.text }"><Star /></el-icon>
+            <span class="submenu-text" :style="{ color: activeMenu === '/store-management/brand' ? '#409EFF' : currentNavbarTheme.text }">品牌名称设置</span>
+          </div>
+          <div
+            class="submenu-item"
+            :class="{ active: activeMenu === '/store-management/stores' }"
+            @click="checkAuth('/store-management/stores')"
+          >
+            <el-icon class="submenu-icon" :style="{ color: activeMenu === '/store-management/stores' ? '#409EFF' : currentNavbarTheme.text }"><Shop /></el-icon>
+            <span class="submenu-text" :style="{ color: activeMenu === '/store-management/stores' ? '#409EFF' : currentNavbarTheme.text }">分店管理</span>
+          </div>
+          <div
+            class="submenu-item"
+            :class="{ active: activeMenu === '/store-management/employees' }"
+            @click="checkAuth('/store-management/employees')"
+          >
+            <el-icon class="submenu-icon" :style="{ color: activeMenu === '/store-management/employees' ? '#409EFF' : currentNavbarTheme.text }"><UserFilled /></el-icon>
+            <span class="submenu-text" :style="{ color: activeMenu === '/store-management/employees' ? '#409EFF' : currentNavbarTheme.text }">店员注册</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 系统设置下拉菜单 -->
       <div class="submenu-container">
         <div
@@ -184,7 +232,9 @@
           </el-tooltip>
         </div>
         <div v-if="!isCollapsed && expandedMenus.settings" class="submenu-items">
+          <!-- 店铺设置 - 仅单店模式店长可见 -->
           <div
+            v-if="!isMultiStoreMode && !userStore.isEmployee"
             class="submenu-item"
             :class="{ active: activeMenu === '/settings/shop' }"
             @click="checkAuth('/settings/shop')"
@@ -258,7 +308,7 @@ import { useRouter } from "vue-router";
 import { useUserStore } from '../store/user';
 import {
   House, Document, Edit, User, SwitchButton, Setting, ArrowDown,
-  Tools, Message, Shop, Brush, Bell, ChatDotRound, EditPen, Fold, Expand, Star
+  Tools, Message, Shop, Brush, Bell, ChatDotRound, EditPen, Fold, Expand, Star, UserFilled
 } from "@element-plus/icons-vue";
 // 导入logo图片
 import logoUrl from '../assets/logo.jpg';
@@ -283,6 +333,7 @@ const isCollapsed = ref(false);
 const expandedMenus = ref({
   members: false,
   pushService: false,
+  storeManagement: false,
   settings: false
 });
 
@@ -298,6 +349,11 @@ const isMultiStoreMode = computed(() => {
 
 // 当前店铺名称
 const currentStoreName = computed(() => {
+  // 如果是员工，优先从用户信息中获取店铺名称
+  if (userStore.isEmployee && userStore.user?.storeName) {
+    return userStore.user.storeName;
+  }
+
   if (!stores.value.length) return '加载中...';
   const currentStore = stores.value.find(store => store.id === currentStoreId.value);
   return currentStore ? currentStore.storeName : '未知店铺';
@@ -312,6 +368,7 @@ const toggleCollapse = () => {
     expandedMenus.value = {
       members: false,
       pushService: false,
+      storeManagement: false,
       settings: false
     };
   }
@@ -615,6 +672,12 @@ const fetchTenantName = async () => {
   border-radius: 2px;
   margin-left: 4px;
   flex-shrink: 0;
+}
+
+.employee-store-name {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 :deep(.el-dropdown-menu__item.is-active) {

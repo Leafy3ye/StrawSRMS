@@ -47,6 +47,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByTenantIdAndStoreIdAndTableIdAndCompletedTrueAndCreatedAtBetween(
         Long tenantId, Long storeId, Long tableId, LocalDateTime startTime, LocalDateTime endTime);
 
+    // 根据交易ID查询订单
+    List<Order> findByTransactionId(Long transactionId);
+    List<Order> findByTransactionIdAndTenantIdAndStoreId(Long transactionId, Long tenantId, Long storeId);
+
     // 统计查询
     @Query("SELECT COUNT(o) FROM Order o WHERE o.tenantId = :tenantId AND o.storeId = :storeId AND o.createdAt >= :startTime AND o.createdAt < :endTime")
     Long countTodayOrdersByTenantIdAndStoreId(@Param("tenantId") Long tenantId, 
@@ -64,9 +68,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Transactional
     @Query("DELETE FROM Order o WHERE o.tenantId = :tenantId")
     void deleteByTenantId(@Param("tenantId") Long tenantId);
-    
+
     @Modifying
     @Transactional
     @Query("DELETE FROM Order o WHERE o.storeId = :storeId")
     void deleteByStoreId(@Param("storeId") Long storeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Order o WHERE o.tenantId = :tenantId AND o.storeId = :storeId")
+    void deleteByTenantIdAndStoreId(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }

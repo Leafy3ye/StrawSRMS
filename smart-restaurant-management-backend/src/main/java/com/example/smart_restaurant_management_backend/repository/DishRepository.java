@@ -24,9 +24,14 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
     @Transactional
     @Query("DELETE FROM Dish d WHERE d.tenantId = :tenantId")
     void deleteByTenantId(@Param("tenantId") Long tenantId);
-    
+
     @Modifying
     @Transactional
     @Query("DELETE FROM Dish d WHERE d.storeId = :storeId")
     void deleteByStoreId(@Param("storeId") Long storeId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Dish d WHERE d.tenantId = :tenantId AND d.storeId = :storeId")
+    void deleteByTenantIdAndStoreId(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }
