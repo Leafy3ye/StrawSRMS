@@ -1,7 +1,7 @@
 <!-- 底部组件 -->
 <template>
     <el-footer class="footer-bar">
-      © 智慧餐饮综合管理系统
+      © StrawSRMS 2025
     </el-footer>
   </template>
   

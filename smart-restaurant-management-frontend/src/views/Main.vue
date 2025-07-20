@@ -256,30 +256,39 @@ const getTableStatus = (tableId) => {
 
 // 跳转到桌位详情页面
 const goToTableDetail = (tableId) => {
-// 使用科技蓝色的圆圈转动加载
-const loading = ElLoading.service({
-lock: true,
-text: '系统正在加载桌位详情数据，首次加载时间较长，请稍候...',
-background: 'rgba(0, 0, 0, 0.7)',
-spinner: 'el-icon-loading',
-svgViewBox: '-10, -10, 50, 50',
-svgStyle: {
-color: '#409EFF',  // 科技蓝
-fontSize: '42px'
-},
-textStyle: {
-color: '#409EFF',  // 科技蓝
-fontSize: '16px',
-fontWeight: '600'
-}
-});
+  // 使用科技蓝色的圆圈转动加载
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在加载桌位详情...',
+    background: 'rgba(0, 0, 0, 0.7)',
+    spinner: 'el-icon-loading',
+    svgViewBox: '-10, -10, 50, 50',
+    svgStyle: {
+      color: '#409EFF',  // 科技蓝
+      fontSize: '42px'
+    },
+    textStyle: {
+      color: '#409EFF',  // 科技蓝
+      fontSize: '16px',
+      fontWeight: '600'
+    }
+  });
 
-router.push(`/table/${tableId}`).then(() => {
-loading.close();
-}).catch(() => {
-loading.close();
-ElMessage.error('页面跳转失败，请重试');
-});
+  // 设置一个最短显示时间，避免闪烁
+  const minLoadTime = 300; // 最少显示300ms
+  const startTime = Date.now();
+
+  router.push(`/table/${tableId}`).then(() => {
+    const elapsed = Date.now() - startTime;
+    const remainingTime = Math.max(0, minLoadTime - elapsed);
+
+    setTimeout(() => {
+      loading.close();
+    }, remainingTime);
+  }).catch(() => {
+    loading.close();
+    ElMessage.error('页面跳转失败，请重试');
+  });
 };
 
 // 组件挂载时调用 getTables 方法

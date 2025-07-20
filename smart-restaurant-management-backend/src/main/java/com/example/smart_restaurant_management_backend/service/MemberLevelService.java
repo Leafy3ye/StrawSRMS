@@ -15,14 +15,14 @@ public class MemberLevelService {
     @Autowired
     private MemberLevelRepository memberLevelRepository;
 
-    // 获取当前租户和门店的所有会员等级
+    // 获取当前租户和门店的所有会员等级（包括禁用状态）
     public List<MemberLevel> getAllMemberLevels() {
         Long currentTenantId = TenantContext.getCurrentTenantId();
         Long currentStoreId = TenantContext.getCurrentStoreId();
         if (currentTenantId == null || currentStoreId == null) {
             throw new RuntimeException("未找到当前租户或门店信息");
         }
-        return memberLevelRepository.findByTenantIdAndStoreIdAndIsEnabledTrueOrderBySortOrder(currentTenantId, currentStoreId);
+        return memberLevelRepository.findByTenantIdAndStoreIdOrderBySortOrder(currentTenantId, currentStoreId);
     }
 
     // 根据ID获取会员等级

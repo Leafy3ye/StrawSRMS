@@ -1,6 +1,7 @@
 package com.example.smart_restaurant_management_backend.service;
 
 import com.example.smart_restaurant_management_backend.dto.OrderDetailDTO;
+import com.example.smart_restaurant_management_backend.dto.MemberSettlementInfo;
 import com.example.smart_restaurant_management_backend.model.Order;
 import com.example.smart_restaurant_management_backend.model.Dish;
 import com.example.smart_restaurant_management_backend.model.Transaction;
@@ -189,6 +190,11 @@ public class OrderService {
 
     // 结账方法 - 支持租户和店铺级别过滤
     public Transaction checkout(Long tableId) {
+        return checkout(tableId, null);
+    }
+
+    // 重载的结账方法，支持会员结算信息
+    public Transaction checkout(Long tableId, MemberSettlementInfo memberInfo) {
         Long currentTenantId = TenantContext.getCurrentTenantId();
         Long currentStoreId = TenantContext.getCurrentStoreId();
         if (currentTenantId == null) {
@@ -215,6 +221,28 @@ public class OrderService {
         
         // 创建交易记录
         Transaction transaction = new Transaction(currentTenantId, currentStoreId, tableId, tableName, totalAmount, orders.size());
+
+        // 如果是会员结算，设置会员信息
+        if (memberInfo != null) {
+            transaction.setPaymentType("member");
+            transaction.setMemberId(memberInfo.getMemberId());
+            transaction.setMemberName(memberInfo.getMemberName());
+            transaction.setMemberPhone(memberInfo.getMemberPhone());
+            transaction.setMemberLevel(memberInfo.getMemberLevel());
+            transaction.setOriginalAmount(memberInfo.getOriginalAmount());
+            transaction.setDiscountRate(memberInfo.getDiscountRate());
+            transaction.setDiscountAmount(memberInfo.getDiscountAmount());
+            transaction.setActualAmount(memberInfo.getActualAmount());
+            // 更新totalAmount为实际收款金额
+            transaction.setTotalAmount(memberInfo.getActualAmount());
+        } else {
+            transaction.setPaymentType("cash");
+            transaction.setOriginalAmount(totalAmount);
+            transaction.setActualAmount(totalAmount);
+            transaction.setDiscountRate(BigDecimal.ONE);
+            transaction.setDiscountAmount(BigDecimal.ZERO);
+        }
+
         Transaction savedTransaction = transactionService.save(transaction);
 
         // 标记订单为已完成，并设置交易ID
@@ -432,7 +460,7 @@ public class OrderService {
                 Map<String, Object> item = new HashMap<>();
                 item.put("dishId", entry.getKey());
                 item.put("dishName", dishNameMap.get(entry.getKey()));
-                item.put("quantity", entry.getValue());
+                item.put("totalQuantity", entry.getValue()); // 修改字段名以匹配前端期望
                 return item;
             })
             .collect(Collectors.toList());
@@ -465,13 +493,9 @@ public class OrderService {
         if (currentStoreId == null) {
             throw new RuntimeException("未找到当前店铺信息");
         }
-        
-        // 计算今日时间范围（使用应用服务器时区）
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = startOfDay.plusDays(1);
-        
-        BigDecimal result = orderRepository.sumTodayRevenueByTenantIdAndStoreId(currentTenantId, currentStoreId, startOfDay, endOfDay);
-        return result != null ? result : BigDecimal.ZERO;
+
+        // 使用TransactionService获取今日实际收入
+        return transactionService.getTodayActualRevenue();
     }
 
     // 获取总订单数量
@@ -499,11 +523,9 @@ public class OrderService {
         if (currentStoreId == null) {
             throw new RuntimeException("未找到当前店铺信息");
         }
-        
-        List<Order> allOrders = orderRepository.findByTenantIdAndStoreId(currentTenantId, currentStoreId);
-        return allOrders.stream()
-            .map(order -> order.getPrice().multiply(BigDecimal.valueOf(order.getQuantity())))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        // 使用TransactionService获取总实际收入
+        return transactionService.getTotalActualRevenue();
     }
 
     // 获取图表数据（订单趋势）

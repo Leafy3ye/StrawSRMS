@@ -13,6 +13,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/files")
+@CrossOrigin(origins = "*")
 public class FileController {
     
     @PostMapping("/upload/avatar")

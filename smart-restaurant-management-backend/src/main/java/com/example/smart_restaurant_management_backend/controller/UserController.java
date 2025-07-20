@@ -364,4 +364,44 @@ public class UserController {
             return ResponseEntity.badRequest().body("删除员工失败: " + e.getMessage());
         }
     }
+
+    // 获取当前用户信息
+    @GetMapping("/profile")
+    public ResponseEntity<?> getCurrentUserProfile() {
+        try {
+            String currentUserUuid = TenantContext.getCurrentUserUuid();
+            if (currentUserUuid == null) {
+                return ResponseEntity.badRequest().body("未找到当前用户信息");
+            }
+
+            UserDTO user = userService.getUserByUuid(currentUserUuid);
+            if (user != null) {
+                return ResponseEntity.ok(user);
+            } else {
+                return ResponseEntity.badRequest().body("用户不存在");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("获取用户信息失败: " + e.getMessage());
+        }
+    }
+
+    // 更新当前用户信息
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateCurrentUserProfile(@RequestBody Map<String, Object> request) {
+        try {
+            String currentUserUuid = TenantContext.getCurrentUserUuid();
+            if (currentUserUuid == null) {
+                return ResponseEntity.badRequest().body("未找到当前用户信息");
+            }
+
+            UserDTO updatedUser = userService.updateUserProfile(currentUserUuid, request);
+            if (updatedUser != null) {
+                return ResponseEntity.ok(updatedUser);
+            } else {
+                return ResponseEntity.badRequest().body("更新用户信息失败");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("更新用户信息失败: " + e.getMessage());
+        }
+    }
 }

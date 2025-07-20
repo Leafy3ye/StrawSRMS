@@ -12,7 +12,13 @@
       </template>
 
       <!-- 会员等级列表 -->
-      <el-table :data="memberLevels" style="width: 100%" stripe v-loading="loading">
+      <el-table 
+        :data="memberLevels" 
+        style="width: 100%" 
+        stripe 
+        v-loading="loading"
+        :row-class-name="getRowClassName"
+      >
         <el-table-column prop="levelName" label="等级名称" width="120" />
         <el-table-column prop="discountRate" label="折扣率" width="120">
           <template #default="scope">
@@ -34,12 +40,33 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="scope">
             <el-button type="primary" size="small" @click="editMemberLevel(scope.row)">
               编辑
             </el-button>
-            <el-button type="danger" size="small" @click="deleteMemberLevel(scope.row.id)">
+            <el-button 
+              v-if="scope.row.isEnabled" 
+              type="warning" 
+              size="small" 
+              @click="toggleMemberLevelStatus(scope.row.id, false)"
+            >
+              禁用
+            </el-button>
+            <el-button 
+              v-else 
+              type="success" 
+              size="small" 
+              @click="toggleMemberLevelStatus(scope.row.id, true)"
+            >
+              启用
+            </el-button>
+            <el-button 
+              type="danger" 
+              size="small" 
+              @click="deleteMemberLevel(scope.row.id)"
+              :disabled="!scope.row.isEnabled"
+            >
               删除
             </el-button>
           </template>
@@ -240,10 +267,50 @@ const deleteMemberLevel = async (id) => {
   }
 };
 
+// 切换会员等级状态
+const toggleMemberLevelStatus = async (id, isEnabled) => {
+  try {
+    const statusText = isEnabled ? '启用' : '禁用';
+    await ElMessageBox.confirm(
+      `确定要${statusText}这个会员等级吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    );
+    
+    // 获取当前会员等级信息
+    const currentLevel = memberLevels.value.find(level => level.id === id);
+    if (!currentLevel) {
+      ElMessage.error('未找到会员等级信息');
+      return;
+    }
+    
+    // 更新状态
+    const updatedLevel = { ...currentLevel, isEnabled };
+    await api.put(`/api/member-levels/${id}`, updatedLevel);
+    
+    ElMessage.success(`${statusText}成功`);
+    loadMemberLevels();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('切换会员等级状态失败:', error);
+      ElMessage.error('操作失败');
+    }
+  }
+};
+
 // 组件挂载时加载数据
 onMounted(() => {
   loadMemberLevels();
 });
+
+// 获取行样式类名
+const getRowClassName = ({ row }) => {
+  return row.isEnabled ? '' : 'disabled-row';
+};
 </script>
 
 <style scoped>
@@ -298,5 +365,14 @@ onMounted(() => {
     gap: 15px;
     align-items: stretch;
   }
+}
+
+.disabled-row {
+  background-color: #f5f5f5 !important;
+  opacity: 0.6;
+}
+
+.disabled-row td {
+  color: #999 !important;
 }
 </style>

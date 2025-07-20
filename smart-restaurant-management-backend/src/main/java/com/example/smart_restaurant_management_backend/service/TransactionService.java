@@ -58,4 +58,34 @@ public class TransactionService {
         return transactionRepository.findByIdAndTenantIdAndStoreId(id, currentTenantId, currentStoreId)
                 .orElse(null);
     }
+
+    // 获取今日实际收入（基于actualAmount字段）
+    public BigDecimal getTodayActualRevenue() {
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            return BigDecimal.ZERO;
+        }
+
+        List<Transaction> todayTransactions = findTodayTransactions();
+        return todayTransactions.stream()
+                .map(transaction -> transaction.getActualAmount() != null ?
+                     transaction.getActualAmount() : transaction.getTotalAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // 获取总实际收入（基于actualAmount字段）
+    public BigDecimal getTotalActualRevenue() {
+        Long currentTenantId = TenantContext.getCurrentTenantId();
+        Long currentStoreId = TenantContext.getCurrentStoreId();
+        if (currentTenantId == null || currentStoreId == null) {
+            return BigDecimal.ZERO;
+        }
+
+        List<Transaction> allTransactions = findAll();
+        return allTransactions.stream()
+                .map(transaction -> transaction.getActualAmount() != null ?
+                     transaction.getActualAmount() : transaction.getTotalAmount())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }

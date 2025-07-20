@@ -68,9 +68,13 @@ public class MemberController {
 
     // 扣除会员余额
     @PostMapping("/deduct")
-    public ResponseEntity<Member> deductBalance(@RequestBody DeductRequestDTO deductRequest) {
-        Member member = memberService.deductBalance(deductRequest);
-        return member != null ? ResponseEntity.ok(member) : ResponseEntity.badRequest().build();
+    public ResponseEntity<?> deductBalance(@RequestBody DeductRequestDTO deductRequest) {
+        try {
+            Member member = memberService.deductBalance(deductRequest);
+            return ResponseEntity.ok(member);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // 获取会员充值记录

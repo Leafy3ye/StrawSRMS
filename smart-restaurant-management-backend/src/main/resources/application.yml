@@ -48,6 +48,14 @@ spring:
   profiles:
     active: prod
 
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      file-size-threshold: 2KB
+
   redis:
     host: 127.0.0.1
     port: 6379

@@ -36,8 +36,41 @@
 
     <!-- 交易记录表格 -->
     <el-table :data="paginatedTransactions" style="width: 100%" stripe>
-      <el-table-column prop="id" label="订单ID" width="150" />
-      <el-table-column prop="tableName" label="桌位" width="150" />
+      <el-table-column prop="id" label="订单ID" width="100" />
+      <el-table-column prop="tableName" label="桌位" width="120" />
+      <el-table-column label="结算方式" width="120">
+        <template #default="scope">
+          <el-tag :type="scope.row.paymentType === 'member' ? 'success' : 'info'">
+            {{ scope.row.paymentType === 'member' ? '会员结算' : '正常结算' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="会员信息" width="150">
+        <template #default="scope">
+          <div v-if="scope.row.paymentType === 'member'">
+            <div>{{ scope.row.memberName }}</div>
+            <div style="font-size: 12px; color: #999;">{{ scope.row.memberPhone }}</div>
+          </div>
+          <span v-else style="color: #999;">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="原始金额" width="120">
+        <template #default="scope">
+          ¥{{ parseFloat(scope.row.originalAmount || scope.row.totalAmount).toFixed(2) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="实际收款" width="120">
+        <template #default="scope">
+          <span :style="{ color: scope.row.paymentType === 'member' ? '#67C23A' : '#303133' }">
+            ¥{{ parseFloat(scope.row.actualAmount || scope.row.totalAmount).toFixed(2) }}
+          </span>
+        </template>
+      </el-table-column>
+      <el-table-column label="交易时间" width="180">
+        <template #default="scope">
+          {{ formatTime(scope.row.createdAt) }}
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="120">
         <template #default="scope">
           <el-button type="primary" size="small" @click="viewDetail(scope.row)">
@@ -61,14 +94,43 @@
     </div>
 
     <!-- 订单详情弹窗 -->
-    <el-dialog v-model="showDetailDialog" title="订单详情" width="800px">
+    <el-dialog v-model="showDetailDialog" title="订单详情" width="900px">
       <div v-if="selectedTransaction">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="订单ID">{{ selectedTransaction.id }}</el-descriptions-item>
           <el-descriptions-item label="桌位">{{ selectedTransaction.tableName }}</el-descriptions-item>
           <el-descriptions-item label="菜品数量">{{ selectedTransaction.orderCount }} 份</el-descriptions-item>
-          <el-descriptions-item label="交易金额">¥{{ parseFloat(selectedTransaction.totalAmount).toFixed(2) }}</el-descriptions-item>
+          <el-descriptions-item label="结算方式">
+            <el-tag :type="selectedTransaction.paymentType === 'member' ? 'success' : 'info'">
+              {{ selectedTransaction.paymentType === 'member' ? '会员结算' : '正常结算' }}
+            </el-tag>
+          </el-descriptions-item>
           <el-descriptions-item label="交易时间" :span="2">{{ formatTime(selectedTransaction.createdAt) }}</el-descriptions-item>
+        </el-descriptions>
+
+        <!-- 会员信息（仅在会员结算时显示） -->
+        <div v-if="selectedTransaction.paymentType === 'member'">
+          <el-divider>会员信息</el-divider>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="会员姓名">{{ selectedTransaction.memberName }}</el-descriptions-item>
+            <el-descriptions-item label="手机号码">{{ selectedTransaction.memberPhone }}</el-descriptions-item>
+            <el-descriptions-item label="会员等级">{{ selectedTransaction.memberLevel }}</el-descriptions-item>
+            <el-descriptions-item label="折扣率">{{ (parseFloat(selectedTransaction.discountRate || 1) * 100).toFixed(0) }}%</el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <!-- 金额信息 -->
+        <el-divider>金额信息</el-divider>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="原始金额">¥{{ parseFloat(selectedTransaction.originalAmount || selectedTransaction.totalAmount).toFixed(2) }}</el-descriptions-item>
+          <el-descriptions-item label="折扣金额" v-if="selectedTransaction.paymentType === 'member'">
+            ¥{{ parseFloat(selectedTransaction.discountAmount || 0).toFixed(2) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="实际收款">
+            <span :style="{ color: selectedTransaction.paymentType === 'member' ? '#67C23A' : '#303133', fontWeight: 'bold' }">
+              ¥{{ parseFloat(selectedTransaction.actualAmount || selectedTransaction.totalAmount).toFixed(2) }}
+            </span>
+          </el-descriptions-item>
         </el-descriptions>
 
         <el-divider>菜品详情</el-divider>
@@ -134,7 +196,7 @@ const orderDetails = ref([]);
 
 // 计算属性
 const totalAmount = computed(() => {
-  return transactions.value.reduce((sum, t) => sum + parseFloat(t.totalAmount || 0), 0);
+  return transactions.value.reduce((sum, t) => sum + parseFloat(t.actualAmount || t.totalAmount || 0), 0);
 });
 
 const averageAmount = computed(() => {

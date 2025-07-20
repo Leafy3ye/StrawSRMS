@@ -14,8 +14,8 @@ import java.util.Optional;
 @Repository
 public interface MemberLevelRepository extends JpaRepository<MemberLevel, Long> {
     
-    // 根据租户ID和店铺ID查询所有等级（按排序权重排序）
-    List<MemberLevel> findByTenantIdAndStoreIdAndIsEnabledTrueOrderBySortOrder(Long tenantId, Long storeId);
+    // 根据租户ID和店铺ID查询所有等级（包括禁用状态，按排序权重排序）
+    List<MemberLevel> findByTenantIdAndStoreIdOrderBySortOrder(Long tenantId, Long storeId);
     
     // 根据租户ID查询所有等级（跨店铺查询）
     List<MemberLevel> findByTenantIdAndIsEnabledTrueOrderBySortOrder(Long tenantId);

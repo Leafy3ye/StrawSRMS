@@ -22,10 +22,11 @@
         <template #default="scope">
           <el-image
             v-if="scope.row.imageUrl"
-            :src="scope.row.imageUrl"
+            :src="scope.row.imageUrl + '?t=' + Date.now()"
             :preview-src-list="[scope.row.imageUrl]"
             class="dish-image"
             fit="cover"
+            :lazy="false"
           />
           <div v-else class="no-image">
             <el-icon><Picture /></el-icon>
@@ -83,7 +84,7 @@
               :before-upload="beforeImageUpload"
               :headers="uploadHeaders"
             >
-              <img v-if="dishForm.imageUrl" :src="dishForm.imageUrl" class="uploaded-image" />
+              <img v-if="dishForm.imageUrl" :src="dishForm.imageUrl + '?t=' + Date.now()" class="uploaded-image" />
               <div v-else class="upload-placeholder">
                 <el-icon class="upload-icon"><Plus /></el-icon>
                 <div class="upload-text">点击上传图片</div>
@@ -233,7 +234,11 @@ const filteredMenuList = computed(() => {
 
 // 上传相关配置
 const uploadUrl = computed(() => {
-  return `${api.defaults.baseURL}/api/files/upload/dish`;
+  const baseURL = api.defaults.baseURL;
+  // 确保URL格式正确，避免双斜杠
+  return baseURL.endsWith('/')
+    ? `${baseURL}api/files/upload/dish`
+    : `${baseURL}/api/files/upload/dish`;
 });
 
 const uploadHeaders = computed(() => {
@@ -266,9 +271,39 @@ const loadMenu = async () => {
 };
 
 // 图片上传成功回调
-const handleImageSuccess = (response) => {
-  dishForm.value.imageUrl = response.url;
-  ElMessage.success('图片上传成功');
+const handleImageSuccess = async (response) => {
+  try {
+    // 确保图片URL是完整的访问路径
+    const baseURL = api.defaults.baseURL;
+    const imageUrl = response.url.startsWith('http')
+      ? response.url
+      : (baseURL.endsWith('/') ? `${baseURL.slice(0, -1)}${response.url}` : `${baseURL}${response.url}`);
+
+    // 更新表单数据
+    dishForm.value.imageUrl = imageUrl;
+
+    // 如果是编辑模式，立即保存到数据库
+    if (isEditing.value && dishForm.value.id) {
+      console.log('正在保存菜品图片:', {
+        dishId: dishForm.value.id,
+        imageUrl: dishForm.value.imageUrl,
+        dishData: dishForm.value
+      });
+
+      await api.put(`/api/dishes/${dishForm.value.id}`, dishForm.value);
+      ElMessage.success('菜品图片更新成功');
+
+      // 刷新菜单列表以显示最新图片
+      await loadMenu();
+
+      console.log('菜品图片保存完成，菜单已刷新');
+    } else {
+      ElMessage.success('图片上传成功');
+    }
+  } catch (error) {
+    console.error('保存菜品图片失败:', error);
+    ElMessage.error('图片上传成功，但保存失败，请稍后重试');
+  }
 };
 
 // 图片上传前验证

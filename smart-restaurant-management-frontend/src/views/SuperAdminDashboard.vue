@@ -10,7 +10,7 @@
         <el-dropdown @command="handleCommand">
           <span class="admin-info">
             <el-icon><UserFilled /></el-icon>
-            <span>超级管理员</span>
+            <span>系统管理员</span>
             <el-icon class="el-icon--right"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
@@ -496,23 +496,23 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 管理员控制台整体布局 */
+/* 整体布局 */
 .admin-console {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow-x: hidden;
+  background: linear-gradient(135deg, #f6f9fc 0%, #e9f1f7 100%);
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* 顶部导航栏 */
+/* 头部 */
 .admin-header {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  background: white;
   padding: 0 24px;
   height: 64px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -521,24 +521,19 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .logo-icon {
-  font-size: 28px;
-  color: #667eea;
+  font-size: 32px;
+  color: #409eff;
 }
 
 .console-title {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
-  color: #2c3e50;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
+  color: #303133;
 }
 
 .admin-info {
@@ -546,228 +541,102 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  color: #2c3e50;
-  font-weight: 500;
+  border-radius: 20px;
+  transition: background 0.3s;
+  color: #606266;
 }
 
 .admin-info:hover {
-  background-color: rgba(102, 126, 234, 0.1);
+  background: #f5f7fa;
 }
 
-/* 主要内容区域 */
+/* 内容区域 */
 .admin-content {
-  padding: 24px;
-  max-width: 1400px;
+  padding: 32px 24px;
+  max-width: 1600px;
   margin: 0 auto;
-  min-height: calc(100vh - 64px);
-  overflow-y: auto;
 }
 
-/* 区域标题 */
 .section-title {
-  margin: 0 0 20px 0;
   font-size: 24px;
   font-weight: 600;
-  color: #fff;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-actions {
-  display: flex;
-  gap: 12px;
+  color: #303133;
+  margin-bottom: 24px;
 }
 
 /* 概览卡片 */
-.overview-section {
-  margin-bottom: 40px;
+.overview-cards .el-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s;
 }
 
-.overview-cards {
-  margin-bottom: 20px;
-}
-
-.overview-card {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-}
-
-.overview-card:hover {
+.overview-cards .el-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .card-content {
   display: flex;
   align-items: center;
-  padding: 24px;
   gap: 16px;
 }
 
 .card-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  color: white;
 }
 
-.tenant-icon {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-.store-icon {
-  background: linear-gradient(135deg, #f093fb, #f5576c);
-}
-
-.user-icon {
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
-}
-
-.active-icon {
-  background: linear-gradient(135deg, #43e97b, #38f9d7);
-}
-
-.card-info {
-  flex: 1;
-}
+.tenant-icon { background: #e6f7ff; color: #1890ff; }
+.store-icon { background: #f6ffed; color: #52c41a; }
+.user-icon { background: #fff7e6; color: #fa8c16; }
+.active-icon { background: #f0f5ff; color: #2f54eb; }
 
 .card-number {
   font-size: 28px;
-  font-weight: 700;
-  color: #2c3e50;
-  margin-bottom: 4px;
+  font-weight: bold;
+  color: #303133;
 }
 
 .card-label {
   font-size: 14px;
-  color: #7f8c8d;
-  font-weight: 500;
+  color: #909399;
 }
 
-/* 租户和店铺管理区域 */
-.tenant-section,
-.store-section {
-  margin-bottom: 40px;
+/* 表格卡片 */
+.tenant-table-card, .store-table-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 32px;
 }
 
-.tenant-table-card,
-.store-table-card {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .admin-header {
-    padding: 0 16px;
-  }
-
-  .console-title {
-    font-size: 18px;
-  }
-
-  .admin-content {
-    padding: 16px;
-  }
-
-  .section-title {
-    font-size: 20px;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .card-content {
-    padding: 16px;
-  }
-
-  .card-number {
-    font-size: 24px;
-  }
-}
-
-@media (max-width: 480px) {
-  .admin-content {
-    padding: 12px;
-  }
-
-  .overview-cards .el-col {
-    margin-bottom: 12px;
-  }
-
-  .card-content {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-  }
-}
-
-/* 确保页面可以滚动 */
-html, body {
-  overflow-x: hidden;
-}
-
-.admin-console {
-  position: relative;
-  width: 100%;
-}
-
-/* 表格样式优化 */
-:deep(.el-table) {
-  border-radius: 8px;
+.el-table {
+  border-radius: 12px;
   overflow: hidden;
 }
 
-:deep(.el-table th) {
-  background-color: #f8f9fa;
-  color: #2c3e50;
-  font-weight: 600;
+.el-table th {
+  background: #fafafa;
+  color: #606266;
 }
 
-:deep(.el-table td) {
-  border-bottom: 1px solid #f0f0f0;
+/* 对话框 */
+.el-dialog {
+  border-radius: 12px;
 }
 
-:deep(.el-table tr:hover td) {
-  background-color: #f8f9fa;
-}
+/* 响应式 */
+@media (max-width: 768px) {
+  .admin-content {
+    padding: 16px;
+  }
 
-/* 按钮样式优化 */
-:deep(.el-button) {
-  border-radius: 8px;
-  font-weight: 500;
-}
-
-:deep(.el-button--primary) {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border: none;
-}
-
-:deep(.el-button--success) {
-  background: linear-gradient(135deg, #43e97b, #38f9d7);
-  border: none;
+  .overview-cards .el-col {
+    margin-bottom: 16px;
+  }
 }
 </style>

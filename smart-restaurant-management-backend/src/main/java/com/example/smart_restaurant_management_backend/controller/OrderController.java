@@ -3,6 +3,7 @@ package com.example.smart_restaurant_management_backend.controller;
 import com.example.smart_restaurant_management_backend.dto.OrderDetailDTO;
 import com.example.smart_restaurant_management_backend.dto.OrderSummaryDTO;
 import com.example.smart_restaurant_management_backend.dto.TransferOrderRequest;
+import com.example.smart_restaurant_management_backend.dto.MemberSettlementInfo;
 import com.example.smart_restaurant_management_backend.model.Order;
 import com.example.smart_restaurant_management_backend.model.Transaction;
 import com.example.smart_restaurant_management_backend.service.OrderService;
@@ -54,12 +55,28 @@ public class OrderController {
     public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order order) {
         return orderService.findById(id)
                 .map(existingOrder -> {
-                    existingOrder.setTableId(order.getTableId());
-                    existingOrder.setDishId(order.getDishId());
-                    existingOrder.setQuantity(order.getQuantity());
-                    existingOrder.setRemark(order.getRemark());
-                    existingOrder.setCompleted(order.getCompleted());
-                    existingOrder.setPrice(order.getPrice());
+                    // 只更新非空字段，避免覆盖现有数据
+                    if (order.getTableId() != null) {
+                        existingOrder.setTableId(order.getTableId());
+                    }
+                    if (order.getDishId() != null) {
+                        existingOrder.setDishId(order.getDishId());
+                    }
+                    if (order.getQuantity() != null) {
+                        existingOrder.setQuantity(order.getQuantity());
+                    }
+                    if (order.getRemark() != null) {
+                        existingOrder.setRemark(order.getRemark());
+                    }
+                    if (order.getCompleted() != null) {
+                        existingOrder.setCompleted(order.getCompleted());
+                    }
+                    if (order.getPrice() != null) {
+                        existingOrder.setPrice(order.getPrice());
+                    }
+                    if (order.getPrepared() != null) {
+                        existingOrder.setPrepared(order.getPrepared());
+                    }
                     return ResponseEntity.ok(orderService.save(existingOrder));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -78,6 +95,17 @@ public class OrderController {
     public ResponseEntity<Transaction> checkout(@PathVariable Long tableId) {
         try {
             Transaction transaction = orderService.checkout(tableId);
+            return ResponseEntity.ok(transaction);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 会员结算接口
+    @PostMapping("/checkout/{tableId}/member")
+    public ResponseEntity<Transaction> memberCheckout(@PathVariable Long tableId, @RequestBody MemberSettlementInfo memberInfo) {
+        try {
+            Transaction transaction = orderService.checkout(tableId, memberInfo);
             return ResponseEntity.ok(transaction);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();

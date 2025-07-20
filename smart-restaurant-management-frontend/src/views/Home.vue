@@ -223,8 +223,8 @@ const generateChartDataFromTransactions = (transactions) => {
     });
     
     weekOrders.push(dayTransactions.length);
-    // 使用 totalAmount 字段
-    weekRevenue.push(dayTransactions.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0));
+    // 使用 actualAmount 字段，如果没有则使用 totalAmount
+    weekRevenue.push(dayTransactions.reduce((sum, t) => sum + (parseFloat(t.actualAmount || t.totalAmount) || 0), 0));
   }
   
   // 生成月数据（最近30天，每5天一个点）
@@ -251,8 +251,8 @@ const generateChartDataFromTransactions = (transactions) => {
     });
     
     monthOrders.push(periodTransactions.length);
-    // 使用 totalAmount 字段
-    monthRevenue.push(periodTransactions.reduce((sum, t) => sum + (parseFloat(t.totalAmount) || 0), 0));
+    // 使用 actualAmount 字段，如果没有则使用 totalAmount
+    monthRevenue.push(periodTransactions.reduce((sum, t) => sum + (parseFloat(t.actualAmount || t.totalAmount) || 0), 0));
   }
   
   chartData.value = {
@@ -333,16 +333,29 @@ const initTimeAnalysisChart = async () => {
 // 初始化热门菜品图表
 const initPopularDishesChart = async () => {
   await nextTick();
-  if (!popularDishesChart.value || popularDishesData.value.length === 0) {
+
+  console.log('尝试初始化热门菜品图表，数据长度:', popularDishesData.value.length);
+  console.log('图表容器元素:', popularDishesChart.value);
+
+  if (!popularDishesChart.value) {
+    console.log('图表容器元素不存在');
     return;
   }
-  
+
+  if (popularDishesData.value.length === 0) {
+    console.log('热门菜品数据为空，不初始化图表');
+    return;
+  }
+
   try {
     if (popularDishesChartInstance) {
       popularDishesChartInstance.dispose();
+      popularDishesChartInstance = null;
     }
+
     popularDishesChartInstance = echarts.init(popularDishesChart.value);
-    console.log('热门菜品图表初始化成功');
+    console.log('热门菜品图表实例创建成功');
+
     updatePopularDishesChart();
   } catch (error) {
     console.error('热门菜品图表初始化失败:', error);
@@ -603,19 +616,33 @@ const updateTimeAnalysisChart = () => {
 
 // 更新热门菜品图表
 const updatePopularDishesChart = () => {
-  if (!popularDishesChartInstance || popularDishesData.value.length === 0) {
+  console.log('开始更新热门菜品图表');
+  console.log('图表实例存在:', !!popularDishesChartInstance);
+  console.log('数据长度:', popularDishesData.value.length);
+
+  if (!popularDishesChartInstance) {
+    console.log('图表实例不存在，无法更新');
     return;
   }
-  
+
+  if (popularDishesData.value.length === 0) {
+    console.log('数据为空，无法更新图表');
+    return;
+  }
+
   const dishNames = popularDishesData.value.map(item => item.dishName);
   const quantities = popularDishesData.value.map(item => item.totalQuantity);
+
+  console.log('菜品名称:', dishNames);
+  console.log('销量数据:', quantities);
   
   const option = {
     title: {
       text: '最受欢迎菜品 TOP5',
       left: 'center',
       textStyle: {
-        fontSize: 16
+        fontSize: 14,
+        color: '#333'
       }
     },
     tooltip: {
@@ -623,29 +650,63 @@ const updatePopularDishesChart = () => {
       axisPointer: {
         type: 'shadow'
       },
-      formatter: '{b}<br/>销量: {c}份'
+      formatter: function(params) {
+        const data = params[0];
+        return `${data.name}<br/>销量: ${data.value}份`;
+      }
     },
     xAxis: {
       type: 'category',
       data: dishNames,
       axisLabel: {
-        rotate: 45,
-        interval: 0
+        rotate: 30,
+        interval: 0,
+        fontSize: 12,
+        color: '#666',
+        // 限制标签长度，避免重叠
+        formatter: function(value) {
+          return value.length > 6 ? value.substring(0, 6) + '...' : value;
+        }
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#e0e0e0'
+        }
       }
     },
     yAxis: {
       type: 'value',
-      name: '销量(份)'
+      name: '销量(份)',
+      nameTextStyle: {
+        color: '#666',
+        fontSize: 12
+      },
+      axisLabel: {
+        color: '#666',
+        fontSize: 12
+      },
+      axisLine: {
+        lineStyle: {
+          color: '#e0e0e0'
+        }
+      },
+      splitLine: {
+        lineStyle: {
+          color: '#f0f0f0'
+        }
+      }
     },
     series: [{
       data: quantities,
       type: 'bar',
+      barWidth: '60%',
       itemStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: '#ffecd2' },
           { offset: 0.5, color: '#fcb69f' },
           { offset: 1, color: '#fcb69f' }
-        ])
+        ]),
+        borderRadius: [4, 4, 0, 0]
       },
       emphasis: {
         itemStyle: {
@@ -655,21 +716,33 @@ const updatePopularDishesChart = () => {
             { offset: 1, color: '#ffecd2' }
           ])
         }
+      },
+      label: {
+        show: true,
+        position: 'top',
+        color: '#666',
+        fontSize: 12,
+        formatter: '{c}份'
       }
     }],
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '20%',
+      left: '10%',
+      right: '5%',
+      bottom: '25%',
+      top: '15%',
       containLabel: true
     }
   };
   
   try {
-    popularDishesChartInstance.setOption(option);
+    popularDishesChartInstance.setOption(option, true); // 第二个参数为true表示不合并，完全替换
     console.log('热门菜品图表更新成功');
+
+    // 强制重新渲染
+    popularDishesChartInstance.resize();
   } catch (error) {
     console.error('热门菜品图表更新失败:', error);
+    console.error('错误详情:', error);
   }
 };
 
@@ -700,15 +773,38 @@ const loadPopularDishesData = async () => {
   try {
     const response = await api.get('/api/orders/popular-dishes?limit=5');
     const data = response.data;
-    
-    // 检查是否有足够的数据
-    if (!data || data.length < 3) { // 如果少于3个菜品，认为数据不足
+
+    console.log('热门菜品原始数据:', data);
+
+    // 检查数据格式和内容
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      console.log('热门菜品数据为空或格式错误');
+      popularDishesData.value = [];
+      return;
+    }
+
+    // 检查是否是错误消息（后端返回的数据不足提示）
+    if (data.length === 1 && data[0].message) {
+      console.log('后端返回数据不足提示:', data[0].message);
+      popularDishesData.value = [];
+      return;
+    }
+
+    // 验证数据结构
+    const validData = data.filter(item =>
+      item.dishName &&
+      typeof item.totalQuantity === 'number' &&
+      item.totalQuantity > 0
+    );
+
+    if (validData.length < 2) { // 至少需要2个有效菜品才显示图表
+      console.log('有效菜品数据不足，需要至少2个菜品');
       popularDishesData.value = [];
     } else {
-      popularDishesData.value = data;
+      popularDishesData.value = validData;
+      console.log('热门菜品有效数据:', popularDishesData.value);
     }
-    
-    console.log('热门菜品数据:', popularDishesData.value);
+
   } catch (error) {
     console.error('获取热门菜品数据失败:', error);
     popularDishesData.value = [];
@@ -717,10 +813,19 @@ const loadPopularDishesData = async () => {
 
 // 刷新热门菜品数据
 const refreshPopularDishes = async () => {
+  console.log('开始刷新热门菜品数据');
   await loadPopularDishesData();
+
   if (popularDishesData.value.length > 0) {
+    console.log('有数据，准备初始化图表');
     await nextTick();
     await initPopularDishesChart();
+  } else {
+    console.log('无数据，清理图表实例');
+    if (popularDishesChartInstance) {
+      popularDishesChartInstance.dispose();
+      popularDishesChartInstance = null;
+    }
   }
 };
 
@@ -757,13 +862,13 @@ const loadStats = async () => {
     // 计算今日统计数据
     todayOrderCount.value = todayTransactions.length;
     todayRevenue.value = Number(todayTransactions.reduce((sum, transaction) => {
-      return sum + (parseFloat(transaction.totalAmount) || 0);
+      return sum + (parseFloat(transaction.actualAmount || transaction.totalAmount) || 0);
     }, 0));
-    
+
     // 计算总统计数据
     totalOrderCount.value = allTransactions.length;
     totalRevenue.value = Number(allTransactions.reduce((sum, transaction) => {
-      return sum + (parseFloat(transaction.totalAmount) || 0);
+      return sum + (parseFloat(transaction.actualAmount || transaction.totalAmount) || 0);
     }, 0));
     
     console.log('今日订单数:', todayOrderCount.value);

@@ -28,6 +28,7 @@ import javax.annotation.PostConstruct;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
+import java.util.Map;
 import com.example.smart_restaurant_management_backend.dto.RestaurantSetupRequest;
 import com.example.smart_restaurant_management_backend.enums.UserType;
 import com.example.smart_restaurant_management_backend.dto.OrderDetailDTO;
@@ -739,5 +740,49 @@ public class UserService {
         }
 
         userRepository.delete(employee);
+    }
+
+    // 更新用户个人信息
+    public UserDTO updateUserProfile(String userUuid, Map<String, Object> updateData) {
+        Optional<User> userOpt = userRepository.findByUuid(userUuid);
+        if (!userOpt.isPresent()) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        User user = userOpt.get();
+
+        // 更新用户名
+        if (updateData.containsKey("username")) {
+            String newUsername = (String) updateData.get("username");
+            if (newUsername != null && !newUsername.trim().isEmpty()) {
+                user.setUsername(newUsername.trim());
+            }
+        }
+
+        // 更新头像URL
+        if (updateData.containsKey("avatarUrl")) {
+            String avatarUrl = (String) updateData.get("avatarUrl");
+            user.setAvatarUrl(avatarUrl);
+        }
+
+        // 更新密码（如果提供了当前密码和新密码）
+        if (updateData.containsKey("currentPassword") && updateData.containsKey("newPassword")) {
+            String currentPassword = (String) updateData.get("currentPassword");
+            String newPassword = (String) updateData.get("newPassword");
+
+            if (currentPassword != null && newPassword != null) {
+                // 验证当前密码
+                if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                    throw new RuntimeException("当前密码不正确");
+                }
+
+                // 设置新密码
+                user.setPassword(passwordEncoder.encode(newPassword));
+            }
+        }
+
+        // 保存更新
+        User savedUser = userRepository.save(user);
+        return convertToDTO(savedUser);
     }
 }

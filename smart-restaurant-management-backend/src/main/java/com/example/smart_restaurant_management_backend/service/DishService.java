@@ -74,6 +74,12 @@ public class DishService {
             existingDish.setPrice(dish.getPrice());
             existingDish.setDescription(dish.getDescription());
             existingDish.setIsAvailable(dish.getIsAvailable());
+
+            // 更新图片URL（如果提供了新的图片URL）
+            if (dish.getImageUrl() != null) {
+                existingDish.setImageUrl(dish.getImageUrl());
+            }
+
             return dishRepository.save(existingDish);
         } else {
             throw new RuntimeException("菜品不存在或无权限访问");

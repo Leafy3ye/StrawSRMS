@@ -13,10 +13,11 @@
         </el-avatar>
         <el-upload
           class="avatar-uploader"
-          action="#"
-          :auto-upload="false"
+          :action="uploadUrl"
           :show-file-list="false"
-          :on-change="handleAvatarChange"
+          :on-success="handleAvatarSuccess"
+          :before-upload="beforeAvatarUpload"
+          :headers="uploadHeaders"
         >
           <el-button size="small" type="primary">更换头像</el-button>
         </el-upload>
@@ -141,6 +142,7 @@ import { useUserStore } from "../store/user";
 import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { User } from "@element-plus/icons-vue";
+import api from "../utils/api";
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -216,10 +218,62 @@ const deleteRules = {
   ],
 };
 
-// 处理头像变更
+// 上传配置
+const uploadUrl = computed(() => {
+  const baseURL = api.defaults.baseURL;
+  // 确保URL格式正确，避免双斜杠
+  return baseURL.endsWith('/')
+    ? `${baseURL}api/files/upload/avatar`
+    : `${baseURL}/api/files/upload/avatar`;
+});
+
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+});
+
+// 头像上传成功回调
+const handleAvatarSuccess = async (response) => {
+  try {
+    // 确保头像URL是完整的访问路径
+    const baseURL = api.defaults.baseURL;
+    const imageUrl = response.url.startsWith('http')
+      ? response.url
+      : (baseURL.endsWith('/') ? `${baseURL.slice(0, -1)}${response.url}` : `${baseURL}${response.url}`);
+
+    // 更新表单数据
+    form.avatarUrl = imageUrl;
+
+    // 立即更新用户信息到后端
+    await userStore.updateUserInfo({ avatarUrl: imageUrl });
+
+    ElMessage.success('头像上传并保存成功');
+  } catch (error) {
+    console.error('保存头像失败:', error);
+    ElMessage.error('头像上传成功，但保存失败，请稍后重试');
+  }
+};
+
+// 头像上传前验证
+const beforeAvatarUpload = (file) => {
+  const isImage = file.type.startsWith('image/');
+  const isLt2M = file.size / 1024 / 1024 < 2;
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件!');
+    return false;
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+    return false;
+  }
+  return true;
+};
+
+// 处理头像变更（保留作为备用）
 const handleAvatarChange = (file) => {
   avatarFile.value = file;
-  
+
   // 这里可以实现头像预览
   const reader = new FileReader();
   reader.onload = (e) => {

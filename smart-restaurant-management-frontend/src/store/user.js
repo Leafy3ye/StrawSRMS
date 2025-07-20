@@ -198,16 +198,47 @@ export const useUserStore = defineStore('user', {
       }
     },
     
+    // 更新用户信息
+    async updateUserInfo(updateData) {
+      try {
+        const response = await api.put('/api/users/profile', updateData);
+        if (response.data) {
+          // 更新本地用户数据
+          this.user = { ...this.user, ...response.data };
+          localStorage.setItem('user', JSON.stringify(this.user));
+        }
+        return response.data;
+      } catch (error) {
+        console.error('更新用户信息失败:', error);
+        throw error;
+      }
+    },
+
+    // 获取最新用户信息
+    async getUserInfo() {
+      try {
+        const response = await api.get('/api/users/profile');
+        if (response.data) {
+          this.user = response.data;
+          localStorage.setItem('user', JSON.stringify(this.user));
+        }
+        return response.data;
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+        throw error;
+      }
+    },
+
     // 删除账户
     async deleteAccount(deleteData) {
       try {
         const response = await api.delete('/api/users/delete-account', {
           data: deleteData
         });
-        
+
         // 删除成功后清除本地数据
         this.logout();
-        
+
         return { success: true, message: response.data.message };
       } catch (error) {
         console.error('删除账户失败:', error);
